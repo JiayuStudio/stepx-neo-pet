@@ -1,0 +1,49 @@
+:root { font-family: system-ui, -apple-system, "Noto Sans CJK SC", sans-serif; }
+body, button, textarea, h1, h2, h3, h4, .brand, .eyebrow { font-family: system-ui, -apple-system, "Noto Sans CJK SC", sans-serif !important; }
+.neo-companion { margin: 0 0 20px; padding: 16px; border: 2px solid var(--ink); border-radius: 18px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; background: var(--screen); box-shadow: 4px 4px 0 var(--ink); }
+.neo-companion > div { flex: 1 1 220px; }
+.neo-companion strong { display: block; font-size: 16px; }
+.neo-companion small { display: block; margin-top: 4px; font-size: 11px; }
+.neo-companion button { border: 2px solid var(--ink); border-radius: 12px; background: transparent; color: var(--ink); padding: 10px 14px; min-height: 44px; font-weight: 700; }
+.neo-companion .neo-toggle { background: var(--accent); }
+.neo-companion details { width: 100%; font-size: 12px; line-height: 1.6; }
+.neo-companion details p { margin: 8px 0; }
+.hero-copy h1 { font-size: clamp(38px, 7vw, 80px); line-height: 1.1; }
+.eyebrow { letter-spacing: .06em; }
+@media(max-width:600px){
+  .app { padding: 14px !important; }
+  .neo-companion { padding: 12px; margin-bottom: 18px; }
+  .neo-companion > div { flex-basis: 100%; }
+  .hero-copy { text-align: left; }
+  .hero-copy h1 { margin: 6px 0; }
+  .hero-description { font-size: 13px; }
+  .gauge-label { min-width: 32px; }
+  .activity-heading h2,.growth-heading h2,.vault-heading h2 { font-size: 32px; }
+  .story-dialog,.tutorial-dialog,.game-dialog { max-height: 90dvh; overflow-y: auto; }
+}
+
+.pocket-nav { display:flex; position:sticky; top:0; z-index:8; gap:4px; padding:8px; border-radius:14px; background:var(--paper); border:2px solid var(--ink); margin:16px 0; }
+.pocket-nav a { flex:1; text-align:center; color:var(--ink); padding:10px 0; font-size:13px; font-weight:800; text-decoration:none; }
+#care-panel,#growth-title,#activity-title,#vault-title { scroll-margin-top:72px; }
+@media(max-width:600px){
+ .topbar { padding:12px 14px !important; min-height:60px; }
+ .neo-companion { margin-top:12px; }
+ .neo-companion small { font-size:10px; }
+ .neo-companion > div { flex:1 1 180px; }
+ .neo-companion > button { padding:8px 12px; font-size:12px; }
+ .game-layout { min-height:0; padding:4px 0 20px; gap:20px; }
+ .hero-copy { display:none; }
+ .device-stage { padding:32px 0 18px; }
+ .device { width:260px; padding:30px 26px 26px; }
+ .device-loop { top:-28px; width:62px; height:50px; }
+ .device-loop span { inset:8px 17px 12px; }
+ .screen-bezel { padding:8px; }
+ .scene-play-button { font-size:8px; min-height:34px; padding:6px 8px; }
+ .care-panel { padding:18px; }
+ .care-actions button { min-height:60px; }
+ .activity-section,.growth-section,.theme-section,.vault-section { padding:26px 0; }
+}
+
+h1 em, h2 em { -webkit-text-stroke:0; text-shadow:none; font-weight:750; }
+.reply-toast { pointer-events:none; animation: neo-reply 6s both; }
+@keyframes neo-reply { 0%,85% { opacity:1; visibility:visible; } 100% { opacity:0; visibility:hidden; } }

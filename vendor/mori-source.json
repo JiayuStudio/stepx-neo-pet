@@ -1,0 +1,13 @@
+{
+  "repository": "https://github.com/Tech-aficionado/Tamagochi---Open-Source-Game",
+  "commit": "4ffa9c3de87d58d6b962a4d2fcd12c3fa5250c23",
+  "license": "MIT",
+  "modules": {
+    "progression.ts": "3d11ee6e30f1b1a49dbba43f250aad783c8e253f03307eace3681339961dc213",
+    "save.ts": "5936adc8e32301086c0db5f439292cdc2d16c901971e2974e02810a0996da08f",
+    "store.ts": "db700483404e43e153e9fa80113aa850166733a5e03a5bc9745972f6daedf61a",
+    "stories.ts": "fac5186bfff86a3875a8326d544dc85f1f03d8a421b16f36a9bce2e18a806bdc",
+    "transfer.ts": "1005a01b6264ba56dee72aea70754b536a7b50d260a631cdbe0f36d2d3b5d0b8",
+    "types.ts": "a271b5cfb5cfc65cbf56145793403786962a9a1c4de307c83b607ae6ca4fb6e0"
+  }
+}

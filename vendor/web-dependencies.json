@@ -1,0 +1,342 @@
+[
+  {
+    "name": "@babel/runtime",
+    "version": "7.29.7",
+    "license": "MIT"
+  },
+  {
+    "name": "@dimforge/rapier3d-compat",
+    "version": "0.12.0",
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "@fontsource-variable/nunito",
+    "version": "5.2.7",
+    "license": "OFL-1.1"
+  },
+  {
+    "name": "@fontsource/dela-gothic-one",
+    "version": "5.2.7",
+    "license": "OFL-1.1"
+  },
+  {
+    "name": "@mediapipe/tasks-vision",
+    "version": "0.10.17",
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "@monogrid/gainmap-js",
+    "version": "3.4.0",
+    "license": "MIT"
+  },
+  {
+    "name": "@react-three/drei",
+    "version": "10.7.7",
+    "license": "MIT"
+  },
+  {
+    "name": "@react-three/fiber",
+    "version": "9.6.1",
+    "license": "MIT"
+  },
+  {
+    "name": "@tweenjs/tween.js",
+    "version": "23.1.3",
+    "license": "MIT"
+  },
+  {
+    "name": "@types/draco3d",
+    "version": "1.4.10",
+    "license": "MIT"
+  },
+  {
+    "name": "@types/offscreencanvas",
+    "version": "2019.7.3",
+    "license": "MIT"
+  },
+  {
+    "name": "@types/react",
+    "version": "19.2.17",
+    "license": "MIT"
+  },
+  {
+    "name": "@types/react-reconciler",
+    "version": "0.28.9",
+    "license": "MIT"
+  },
+  {
+    "name": "@types/stats.js",
+    "version": "0.17.4",
+    "license": "MIT"
+  },
+  {
+    "name": "@types/three",
+    "version": "0.185.1",
+    "license": "MIT"
+  },
+  {
+    "name": "@types/webxr",
+    "version": "0.5.24",
+    "license": "MIT"
+  },
+  {
+    "name": "@use-gesture/core",
+    "version": "10.3.1",
+    "license": "MIT"
+  },
+  {
+    "name": "@use-gesture/react",
+    "version": "10.3.1",
+    "license": "MIT"
+  },
+  {
+    "name": "base64-js",
+    "version": "1.5.1",
+    "license": "MIT"
+  },
+  {
+    "name": "bidi-js",
+    "version": "1.0.3",
+    "license": "MIT"
+  },
+  {
+    "name": "buffer",
+    "version": "6.0.3",
+    "license": "MIT"
+  },
+  {
+    "name": "camera-controls",
+    "version": "3.1.2",
+    "license": "MIT"
+  },
+  {
+    "name": "cross-env",
+    "version": "7.0.3",
+    "license": "MIT"
+  },
+  {
+    "name": "cross-spawn",
+    "version": "7.0.6",
+    "license": "MIT"
+  },
+  {
+    "name": "csstype",
+    "version": "3.2.3",
+    "license": "MIT"
+  },
+  {
+    "name": "detect-gpu",
+    "version": "5.0.70",
+    "license": "MIT"
+  },
+  {
+    "name": "draco3d",
+    "version": "1.5.7",
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "fflate",
+    "version": "0.8.3",
+    "license": "MIT"
+  },
+  {
+    "name": "glsl-noise",
+    "version": "0.0.0",
+    "license": "MIT"
+  },
+  {
+    "name": "hls.js",
+    "version": "1.6.16",
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "ieee754",
+    "version": "1.2.1",
+    "license": "BSD-3-Clause"
+  },
+  {
+    "name": "immediate",
+    "version": "3.0.6",
+    "license": "MIT"
+  },
+  {
+    "name": "is-promise",
+    "version": "2.2.2",
+    "license": "MIT"
+  },
+  {
+    "name": "isexe",
+    "version": "2.0.0",
+    "license": "ISC"
+  },
+  {
+    "name": "its-fine",
+    "version": "2.0.0",
+    "license": "MIT"
+  },
+  {
+    "name": "lie",
+    "version": "3.3.0",
+    "license": "MIT"
+  },
+  {
+    "name": "maath",
+    "version": "0.10.8",
+    "license": "MIT"
+  },
+  {
+    "name": "meshline",
+    "version": "3.3.1",
+    "license": "MIT"
+  },
+  {
+    "name": "meshoptimizer",
+    "version": "1.1.1",
+    "license": "MIT"
+  },
+  {
+    "name": "path-key",
+    "version": "3.1.1",
+    "license": "MIT"
+  },
+  {
+    "name": "potpack",
+    "version": "1.0.2",
+    "license": "ISC"
+  },
+  {
+    "name": "promise-worker-transferable",
+    "version": "1.0.4",
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "react",
+    "version": "19.2.7",
+    "license": "MIT"
+  },
+  {
+    "name": "react-dom",
+    "version": "19.2.7",
+    "license": "MIT"
+  },
+  {
+    "name": "react-use-measure",
+    "version": "2.1.7",
+    "license": "MIT"
+  },
+  {
+    "name": "require-from-string",
+    "version": "2.0.2",
+    "license": "MIT"
+  },
+  {
+    "name": "scheduler",
+    "version": "0.27.0",
+    "license": "MIT"
+  },
+  {
+    "name": "shebang-command",
+    "version": "2.0.0",
+    "license": "MIT"
+  },
+  {
+    "name": "shebang-regex",
+    "version": "3.0.0",
+    "license": "MIT"
+  },
+  {
+    "name": "stats-gl",
+    "version": "2.4.2",
+    "license": "MIT"
+  },
+  {
+    "name": "three",
+    "version": "0.170.0",
+    "license": "MIT"
+  },
+  {
+    "name": "stats.js",
+    "version": "0.17.0",
+    "license": "MIT"
+  },
+  {
+    "name": "suspend-react",
+    "version": "0.1.3",
+    "license": "MIT"
+  },
+  {
+    "name": "three",
+    "version": "0.185.1",
+    "license": "MIT"
+  },
+  {
+    "name": "three-mesh-bvh",
+    "version": "0.8.3",
+    "license": "MIT"
+  },
+  {
+    "name": "three-stdlib",
+    "version": "2.36.1",
+    "license": "MIT"
+  },
+  {
+    "name": "fflate",
+    "version": "0.6.11",
+    "license": "MIT"
+  },
+  {
+    "name": "troika-three-text",
+    "version": "0.52.4",
+    "license": "MIT"
+  },
+  {
+    "name": "troika-three-utils",
+    "version": "0.52.4",
+    "license": "MIT"
+  },
+  {
+    "name": "troika-worker-utils",
+    "version": "0.52.0",
+    "license": "MIT"
+  },
+  {
+    "name": "tunnel-rat",
+    "version": "0.1.2",
+    "license": "MIT"
+  },
+  {
+    "name": "zustand",
+    "version": "4.5.7",
+    "license": "MIT"
+  },
+  {
+    "name": "use-sync-external-store",
+    "version": "1.6.0",
+    "license": "MIT"
+  },
+  {
+    "name": "utility-types",
+    "version": "3.11.0",
+    "license": "MIT"
+  },
+  {
+    "name": "webgl-constants",
+    "version": "1.1.1",
+    "license": "unknown"
+  },
+  {
+    "name": "webgl-sdf-generator",
+    "version": "1.1.1",
+    "license": "MIT"
+  },
+  {
+    "name": "which",
+    "version": "2.0.2",
+    "license": "ISC"
+  },
+  {
+    "name": "zustand",
+    "version": "5.0.14",
+    "license": "MIT"
+  }
+]

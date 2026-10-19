@@ -1,0 +1,6 @@
+{
+  "source": "https://github.com/mozilla/rhino/tree/Rhino1_7_15_1_Release",
+  "version": "1.7.15.1",
+  "license": "MPL-2.0",
+  "binarySHA256": "f3520a0e2e22d550f1216a456be233eb5385bf08e3219407dece7a16369eb38f"
+}
