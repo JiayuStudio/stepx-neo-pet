@@ -1,4 +1,5 @@
 export type ThemeId = 'sakura' | 'cyber' | 'moss' | 'moon'
+export type CharacterId = 'star' | 'block'
 export type GameMode = 'cozy' | 'classic'
 export type NeedKey = 'hunger' | 'joy' | 'hygiene' | 'energy' | 'health'
 export type PetNeeds = Record<NeedKey, number>
@@ -50,8 +51,18 @@ export interface StoryEvent {
   choices: readonly StoryChoice[]
 }
 
+/** 0.3.3 孵化：新领养从蛋开始；旧存档 hatched=true 直接进入养成 */
+export interface EggState {
+  startedAt: number
+  durationMs: number
+}
+
 export interface GameSnapshot {
   petName: string
+  /** 0.3.3 角色：星跃（圆润星形精灵）/ 方跃（像素方块精灵）；旧存档缺省按星跃迁移 */
+  character: CharacterId
+  /** 0.3.3 耳机开关（黑橙耳机造型，正背面同步） */
+  headphones: boolean
   needs: PetNeeds
   bond: number
   ageMinutes: number
@@ -77,6 +88,12 @@ export interface GameSnapshot {
   ownedItemIds: KeepsakeId[]
   equippedWearable: KeepsakeId | null
   equippedRoomItem: KeepsakeId | null
+  /** 孵化状态：null = 已孵化（旧存档）；非 null = 蛋计时中 */
+  egg: EggState | null
+  /** 是否已孵化（旧 0.3.2 / 0.3.3 养成存档均为 true） */
+  hatched: boolean
+  /** 蛋阶段轻触安抚的时间戳（短暂反馈） */
+  eggSoothedAt: number | null
 }
 
 export const clampNeed = (value: number) => Math.max(0, Math.min(100, value))

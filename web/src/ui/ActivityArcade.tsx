@@ -59,7 +59,7 @@ function StarCatch({ onClose }: { onClose: () => void }) {
       <div className="star-field">
         {phase === 'ready' && <GamePrompt icon="★" title="伸出手，接住星星。" body="在 12 秒内点击星星，获得星屑。" action="开始挑战" onAction={start} />}
         {phase === 'playing' && <button className="catch-star" style={{ '--star-x': `${position.x}%`, '--star-y': `${position.y}%` } as CSSProperties} onClick={catchStar} aria-label="接住星星">★</button>}
-        {phase === 'done' && <GamePrompt icon="✦" title={`接住了 ${score} 颗星星！`} body={`点点获得 ${Math.max(3, Math.floor(score / 2))} 星屑。`} action="再玩一次" onAction={start} />}
+        {phase === 'done' && <GamePrompt icon="✦" title={`接住了 ${score} 颗星星！`} body={`它获得 ${Math.max(3, Math.floor(score / 2))} 星屑。`} action="再玩一次" onAction={start} />}
       </div>
     </GameShell>
   )
@@ -109,11 +109,11 @@ function MemoryFlip({ onClose }: { onClose: () => void }) {
     : {
         icon: '◇',
         title: `记住了 ${Math.max(0,picks.length-1)} 个符号`,
-        body: '信号消失了，点点仍很喜欢和你一起尝试。',
+        body: '信号消失了，它仍很喜欢和你一起尝试。',
       }
 
   return (
-    <GameShell title="记忆信号" subtitle="记住点点发来的五个符号。" onClose={onClose}>
+    <GameShell title="记忆信号" subtitle="记住它发来的五个符号。" onClose={onClose}>
       <div className="memory-board">
         {phase === 'ready' && <GamePrompt icon="◆" title="看清楚，记下来，再重复。" body="符号只会显示短短一瞬。" action="显示信号" onAction={start} />}
         {phase === 'preview' && (
@@ -176,7 +176,7 @@ function GameShell({ title, subtitle, onClose, children }: { title: string; subt
   return (
     <div className="game-overlay" role="presentation">
       <section className="game-dialog" role="dialog" aria-modal="true" aria-labelledby="game-title">
-        <header><div><p className="eyebrow">点点游乐场</p><h2 id="game-title">{title}</h2><span>{subtitle}</span></div><button ref={closeButtonRef} onClick={onClose} aria-label="关闭游戏">×</button></header>
+        <header><div><p className="eyebrow">拓麻歌子游乐场</p><h2 id="game-title">{title}</h2><span>{subtitle}</span></div><button ref={closeButtonRef} onClick={onClose} aria-label="关闭游戏">×</button></header>
         {children}
       </section>
     </div>
@@ -192,7 +192,7 @@ export function ActivityArcade() {
   return (
     <section className="activity-section" aria-labelledby="activity-title">
       <div className="activity-heading">
-        <div><p className="eyebrow">点点游乐场 · 每日开放</p><h2 id="activity-title">小小的游戏，<br /><em>每天的快乐。</em></h2></div>
+        <div><p className="eyebrow">拓麻歌子游乐场 · 每日开放</p><h2 id="activity-title">小小的游戏，<br /><em>每天的快乐。</em></h2></div>
         <div className="reward-counter"><span>✦ {sparks} 星屑</span><span>↻ {streak} 天连续</span></div>
       </div>
       <div className="activity-grid">

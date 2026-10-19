@@ -1,5 +1,6 @@
 import type {
   ActiveIncident,
+  CharacterId,
   CareAction,
   GameMode,
   GrowthStageId,
@@ -12,6 +13,14 @@ import type {
 } from './types'
 
 export const MINUTE_MS = 60_000
+export const EGG_DURATION_MS = 60_000      // 新领养默认 60 秒孵化
+export const EGG_CRACK_MS = 50_000         // 前 50 秒完好的蛋逐渐裂纹
+export const EGG_HATCH_MS = 58_000         // 最后段破壳动画
+export type EggPhase = 'egg' | 'crack' | 'hatch' | 'hatched'
+export const CHARACTERS: readonly CharacterId[] = ['star', 'block']
+export const DEFAULT_CHARACTER_NAMES: Record<CharacterId, string> = { star: '星跃', block: '方跃' }
+export const isCharacterId = (value: unknown): value is CharacterId =>
+  typeof value === 'string' && (CHARACTERS as readonly string[]).includes(value)
 export const INITIAL_INCIDENT_DELAY_MS = 2 * MINUTE_MS
 export const CARE_GROWTH_COOLDOWN_MS = MINUTE_MS
 export const INCIDENT_REWARD_SPARKS = 8
@@ -138,6 +147,8 @@ interface TimedState {
   actionNonce: number
   storyIndex: number
   ownedItemIds: readonly KeepsakeId[]
+  hatched?: boolean
+  egg?: { startedAt: number; durationMs: number } | null
 }
 
 export interface TimedSettlement {
@@ -146,10 +157,14 @@ export interface TimedSettlement {
   ageMinutes: number
   activeIncident: ActiveIncident | null
   nextIncidentAt: number | null
+  egg: { startedAt: number; durationMs: number } | null
+  hatched: boolean
 }
 
 export const settleTimedState = (state: TimedState, sampledNow: number): TimedSettlement => {
   const now = Math.max(state.lastUpdated, sampledNow)
+  // 0.3.3 孵化计时（真实时间戳）：到点破壳，离开前台 / 锁屏 / 重启后一致
+  const hatchSettled = !state.hatched && state.egg !== null && state.egg !== undefined && now >= state.egg.startedAt + state.egg.durationMs
   const rawMinutes = Math.max(0, (now - state.lastUpdated) / MINUTE_MS)
   const elapsedMinutes = state.mode === 'cozy' ? Math.min(rawMinutes, 12 * 60) : rawMinutes
   const pace = state.mode === 'cozy' ? 0.58 : 1
@@ -182,6 +197,8 @@ export const settleTimedState = (state: TimedState, sampledNow: number): TimedSe
     ageMinutes: state.ageMinutes + rawMinutes,
     activeIncident,
     nextIncidentAt,
+    egg: hatchSettled ? null : (state.egg ?? null),
+    hatched: hatchSettled ? true : state.hatched === true
   }
 }
 
@@ -205,3 +222,14 @@ export const canPurchaseKeepsake = (sparks: number, owned: readonly KeepsakeId[]
 export const isEquippable = (owned: readonly KeepsakeId[], itemId: KeepsakeId, category: KeepsakeCategory) => (
   owned.includes(itemId) && KEEPSAKE_BY_ID[itemId].category === category
 )
+
+
+/** 蛋阶段判定（真实时间戳，离开前台 / 锁屏 / 重启后一致） */
+export function eggPhase(egg: { startedAt: number; durationMs: number } | null, hatched: boolean, now: number): EggPhase {
+  if (hatched || !egg) return 'hatched'
+  const elapsed = Math.max(0, now - egg.startedAt)
+  if (elapsed >= egg.durationMs) return 'hatched'
+  if (elapsed >= EGG_HATCH_MS) return 'hatch'
+  if (elapsed >= EGG_CRACK_MS) return 'crack'
+  return 'egg'
+}

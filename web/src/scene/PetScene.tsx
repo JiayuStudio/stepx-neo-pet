@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { ContactShadows, RoundedBox, Sparkles } from '@react-three/drei'
 import * as THREE from 'three'
-import type { ActionSignal, CareAction, GrowthStageId, IncidentId, KeepsakeId, PersonalityId, PetMood, ThemeDefinition } from '../game/types'
+import type { ActionSignal, CareAction, CharacterId, GrowthStageId, IncidentId, KeepsakeId, PersonalityId, PetMood, ThemeDefinition } from '../game/types'
 
 const CARE_ACTIONS = new Set<CareAction>(['feed', 'play', 'wash', 'rest', 'cuddle', 'explore'])
 interface ActionSpec {
@@ -41,15 +41,6 @@ const ARM_POSES: Record<CareAction | 'idle', {
   explore: { left: [-0.65, -0.04, 0.3], right: [0.72, 0.32, 0.42], leftRotation: -0.28, rightRotation: -1.12 },
 }
 
-const EAR_POSES: Record<CareAction | 'idle', [number, number]> = {
-  idle: [-0.35, 0.35],
-  feed: [-0.28, 0.28],
-  play: [-0.08, 0.08],
-  wash: [-0.48, 0.48],
-  rest: [-0.72, 0.72],
-  cuddle: [-0.62, 0.62],
-  explore: [-0.08, 0.08],
-}
 
 function isCareAction(action: ActionSignal): action is CareAction {
   return action !== null && CARE_ACTIONS.has(action as CareAction)
@@ -61,20 +52,6 @@ function Heart({ position, scale = 1 }: { position: [number, number, number]; sc
       <mesh position={[-0.09, 0, 0]}><sphereGeometry args={[0.13, 12, 10]} /><meshBasicMaterial color="#ff7897" /></mesh>
       <mesh position={[0.09, 0, 0]}><sphereGeometry args={[0.13, 12, 10]} /><meshBasicMaterial color="#ff7897" /></mesh>
       <mesh position={[0, 0.12, 0]}><coneGeometry args={[0.2, 0.34, 4]} /><meshBasicMaterial color="#ff7897" /></mesh>
-    </group>
-  )
-}
-
-function PersonalityMark({ personality, stage }: { personality: PersonalityId; stage: GrowthStageId }) {
-  const scale = stage === 'luminary' ? 1.18 : stage === 'bloom' ? 1 : 0.82
-  if (personality === 'gentle') return <Heart position={[0, -0.16, 0.79]} scale={0.42 * scale} />
-  if (personality === 'playful') {
-    return <mesh position={[0, -0.12, 0.82]} rotation={[0.3, 0.2, Math.PI / 4]} scale={scale}><octahedronGeometry args={[0.13]} /><meshStandardMaterial color="#fff0a8" emissive="#ffcf70" emissiveIntensity={0.25} /></mesh>
-  }
-  return (
-    <group position={[0, 0.96, 0]} scale={scale}>
-      <mesh position={[0, 0.14, 0]}><cylinderGeometry args={[0.025, 0.035, 0.28, 8]} /><meshStandardMaterial color="#4c2933" /></mesh>
-      <mesh position={[0, 0.31, 0]}><sphereGeometry args={[0.09, 10, 8]} /><meshStandardMaterial color="#bff7ff" emissive="#8de8ff" emissiveIntensity={0.35} /></mesh>
     </group>
   )
 }
@@ -335,7 +312,8 @@ function ActionEffects({ action, color, reducedMotion }: { action: CareAction; c
 
 interface PetProps {
   mood: PetMood
-  accent: string
+  character: CharacterId
+  headphones: boolean
   effectColor: string
   lastAction: ActionSignal
   actionNonce: number
@@ -346,16 +324,102 @@ interface PetProps {
   onPlay: () => void
 }
 
-function Pet({ mood, accent, effectColor, lastAction, actionNonce, reducedMotion, personality, growthStage, wearableId, onPlay }: PetProps) {
+
+/** 星跃的圆润五角星轮廓（可编辑 Shape + Extrude，倒角出质感） */
+/** 星跃连续轮廓：顶部单圆尖 → 右肩 → 右侧圆尖手 → 右腿 → 底部中央上凹 →
+ *  左腿 → 左侧圆尖手 → 左肩 → 顶部（一条闭合路径，无分离手脚） */
+function createStarShape(): THREE.Shape {
+  const shape = new THREE.Shape()
+  shape.moveTo(0, 1.06)                              // 顶部短圆尖（0.3.4 更圆钝）
+  shape.quadraticCurveTo(0.3, 0.94, 0.56, 0.58)      // 圆尖右沿 → 右肩
+  shape.quadraticCurveTo(0.94, 0.32, 1.0, -0.06)     // 右肩 → 右侧贴身短手（最外）
+  shape.quadraticCurveTo(0.94, -0.3, 0.8, -0.34)     // 短手内沿
+  shape.quadraticCurveTo(0.66, -0.6, 0.58, -0.82)    // 右腿外沿
+  shape.quadraticCurveTo(0.54, -1.04, 0.34, -1.02)   // 右腿底
+  shape.quadraticCurveTo(0.16, -0.98, 0.12, -0.86)   // 右腿内沿
+  shape.quadraticCurveTo(0, -0.72, -0.12, -0.86)     // 底部中央上凹
+  shape.quadraticCurveTo(-0.16, -0.98, -0.34, -1.02) // 左腿内沿 → 左腿底
+  shape.quadraticCurveTo(-0.54, -1.04, -0.58, -0.82) // 左腿外沿
+  shape.quadraticCurveTo(-0.66, -0.6, -0.8, -0.34)   // 左腿 → 左手内沿
+  shape.quadraticCurveTo(-0.94, -0.3, -1.0, -0.06)   // 左侧贴身短手（最外）
+  shape.quadraticCurveTo(-0.94, 0.32, -0.56, 0.58)   // 左手外沿 → 左肩
+  shape.quadraticCurveTo(-0.3, 0.94, 0, 1.06)        // 左肩 → 顶部
+  shape.closePath()
+  return shape
+}
+
+/** 方跃连续轮廓：宽扁身体 + 左右不对称阶梯头顶（向右上收）+ 两侧矩形手 + 双腿中缺口（直角） */
+function createBlockShape(): THREE.Shape {
+  const shape = new THREE.Shape()
+  shape.moveTo(-0.6, -0.98)      // 左腿底外
+  shape.lineTo(-0.56, -0.6)      // 左腿外沿
+  shape.lineTo(-0.9, -0.42)      // 左手外沿（贴身短手）
+  shape.lineTo(-0.92, 0.1)       // 左手顶
+  shape.lineTo(-0.78, 0.24)      // 左手内沿
+  shape.lineTo(-0.76, 0.06)      // 身体左缘
+  shape.lineTo(-0.7, 0.44)       // 阶梯 1（左低）
+  shape.lineTo(-0.2, 0.52)
+  shape.lineTo(-0.1, 0.74)       // 阶梯 2
+  shape.lineTo(0.26, 0.8)
+  shape.lineTo(0.36, 1.02)       // 阶梯 3（顶，偏右）
+  shape.lineTo(0.76, 1.04)
+  shape.lineTo(0.8, 0.72)        // 顶阶右沿
+  shape.lineTo(0.82, 0.06)       // 身体右缘
+  shape.lineTo(0.92, -0.1)       // 右手外沿（贴身短手）
+  shape.lineTo(0.9, -0.46)
+  shape.lineTo(0.62, -0.6)       // 右手内沿 → 右腿外
+  shape.lineTo(0.6, -0.98)       // 右腿底外
+  shape.lineTo(0.14, -0.92)      // 右腿底内
+  shape.quadraticCurveTo(0, -0.7, -0.14, -0.92) // 两腿中间缺口
+  shape.lineTo(-0.56, -0.98)     // 左腿底内
+  shape.closePath()
+  return shape
+}
+const BLOCK_SHAPE = createBlockShape()
+const STAR_SHAPE = createStarShape()
+const STAR_EXTRUDE_OPTIONS = {
+  depth: 0.5, bevelEnabled: true, bevelThickness: 0.16, bevelSize: 0.16, bevelSegments: 5, curveSegments: 12,
+}
+
+/** 黑橙耳机（两个角色共用，按角色头部高度定位） */
+function Headphones({ character, reducedMotion }: { character: CharacterId; reducedMotion: boolean }) {
+  const band = useRef<THREE.Mesh>(null)
+  const leftCup = useRef<THREE.Mesh>(null)
+  const rightCup = useRef<THREE.Mesh>(null)
+  // 耳罩贴主体左右头侧（x≈±0.75, y≈0.35），头梁从两侧跨头顶（不上飘）
+  const earY = 0.35
+  const bandR = character === 'block' ? 0.62 : 0.58
+  useFrame((state) => {
+    const time = state.clock.elapsedTime
+    const bounce = reducedMotion ? 0 : Math.sin(time * 1.9) * 0.015
+    if (band.current) band.current.position.y = earY + bounce
+    if (leftCup.current) leftCup.current.position.y = earY + bounce
+    if (rightCup.current) rightCup.current.position.y = earY + bounce
+  })
+  return (
+    <group>
+      <mesh ref={band} position={[0, earY, -0.06]}>
+        <torusGeometry args={[bandR, 0.05, 10, 32, Math.PI]} />
+        <meshStandardMaterial color="#191a20" roughness={0.42} />
+      </mesh>
+      <mesh ref={leftCup} position={[-0.75, earY, 0.04]} rotation={[0, 0, Math.PI / 2]}>
+        <capsuleGeometry args={[0.15, 0.14, 4, 12]} />
+        <meshStandardMaterial color="#ff7a1a" roughness={0.35} emissive="#c24e00" emissiveIntensity={0.25} />
+      </mesh>
+      <mesh ref={rightCup} position={[0.75, earY, 0.04]} rotation={[0, 0, -Math.PI / 2]}>
+        <capsuleGeometry args={[0.15, 0.14, 4, 12]} />
+        <meshStandardMaterial color="#ff7a1a" roughness={0.35} emissive="#c24e00" emissiveIntensity={0.25} />
+      </mesh>
+    </group>
+  )
+}
+
+function Pet({ mood, effectColor, lastAction, actionNonce, reducedMotion, personality, growthStage, wearableId, character, headphones, onPlay }: PetProps) {
   const rig = useRef<THREE.Group>(null)
   const leftArm = useRef<THREE.Mesh>(null)
   const rightArm = useRef<THREE.Mesh>(null)
-  const leftEar = useRef<THREE.Mesh>(null)
-  const rightEar = useRef<THREE.Mesh>(null)
   const leftEye = useRef<THREE.Mesh>(null)
   const rightEye = useRef<THREE.Mesh>(null)
-  const leftBrow = useRef<THREE.Mesh>(null)
-  const rightBrow = useRef<THREE.Mesh>(null)
   const leftFoot = useRef<THREE.Mesh>(null)
   const rightFoot = useRef<THREE.Mesh>(null)
   const actionElapsed = useRef(10)
@@ -579,26 +643,6 @@ function Pet({ mood, accent, effectColor, lastAction, actionNonce, reducedMotion
       rightFoot.current.rotation.z = THREE.MathUtils.damp(rightFoot.current.rotation.z, rightFootRotation, 16, delta)
     }
 
-    const idleEars = EAR_POSES.idle
-    const actionEars = activeAction ? EAR_POSES[activeAction] : idleEars
-    const earTwitch = activeAction || reducedMotion ? 0 : Math.pow(Math.max(0, Math.sin(time * 0.73 - 1.1)), 14) * 0.12
-    let leftEarRotation = THREE.MathUtils.lerp(idleEars[0], actionEars[0], poseWeight) - earTwitch - attention * 0.11
-    let rightEarRotation = THREE.MathUtils.lerp(idleEars[1], actionEars[1], poseWeight) + earTwitch * 0.45 - attention * 0.035
-    if (activeAction === 'explore') {
-      leftEarRotation -= exploreScan * 0.22
-      rightEarRotation -= exploreScan * 0.12
-    }
-    const earLift = (activeAction === 'play' || activeAction === 'explore') ? poseWeight * 0.07 : activeAction === 'rest' ? -poseWeight * 0.04 : 0
-    const earScale = 1 + ((activeAction === 'play' || activeAction === 'explore') ? poseWeight * 0.1 : 0)
-    if (leftEar.current && rightEar.current) {
-      leftEar.current.position.y = THREE.MathUtils.damp(leftEar.current.position.y, 0.76 + earLift, 12, delta)
-      rightEar.current.position.y = THREE.MathUtils.damp(rightEar.current.position.y, 0.76 + earLift, 12, delta)
-      leftEar.current.rotation.z = THREE.MathUtils.damp(leftEar.current.rotation.z, leftEarRotation, 12, delta)
-      rightEar.current.rotation.z = THREE.MathUtils.damp(rightEar.current.rotation.z, rightEarRotation, 12, delta)
-      leftEar.current.scale.setScalar(THREE.MathUtils.damp(leftEar.current.scale.x, earScale, 12, delta))
-      rightEar.current.scale.setScalar(THREE.MathUtils.damp(rightEar.current.scale.x, earScale, 12, delta))
-    }
-
     const restingEye = mood === 'sleepy' || mood === 'unwell' ? 0.12 : mood === 'grumpy' ? 0.72 : mood === 'radiant' ? 1.16 : 1
     const naturalBlink = !activeAction && restingEye > 0.2 && Math.sin(time * 0.79) + Math.sin(time * 0.31 + 0.7) > 1.82
     let eyeTarget = naturalBlink ? 0.08 : restingEye
@@ -628,43 +672,8 @@ function Pet({ mood, accent, effectColor, lastAction, actionNonce, reducedMotion
       rightEye.current.position.y = THREE.MathUtils.damp(rightEye.current.position.y, 0.25 + gazeY, 16, delta)
     }
 
-    let browVisibility = mood === 'grumpy' && !activeAction ? 1 : 0
-    let leftBrowRotation = -0.22
-    let rightBrowRotation = 0.22
-    let leftBrowY = 0.49
-    let rightBrowY = 0.49
-    if (activeAction === 'play') {
-      browVisibility = poseWeight
-      leftBrowRotation = 0.15
-      rightBrowRotation = -0.15
-      leftBrowY = 0.52
-      rightBrowY = 0.52
-    } else if (activeAction === 'explore') {
-      browVisibility = poseWeight
-      leftBrowRotation = -0.06
-      rightBrowRotation = -0.3
-      leftBrowY = 0.49
-      rightBrowY = 0.54
-    }
-    if (leftBrow.current && rightBrow.current) {
-      leftBrow.current.scale.x = THREE.MathUtils.damp(leftBrow.current.scale.x, browVisibility, 18, delta)
-      leftBrow.current.scale.y = THREE.MathUtils.damp(leftBrow.current.scale.y, browVisibility, 18, delta)
-      leftBrow.current.scale.z = THREE.MathUtils.damp(leftBrow.current.scale.z, browVisibility, 18, delta)
-      rightBrow.current.scale.x = THREE.MathUtils.damp(rightBrow.current.scale.x, browVisibility, 18, delta)
-      rightBrow.current.scale.y = THREE.MathUtils.damp(rightBrow.current.scale.y, browVisibility, 18, delta)
-      rightBrow.current.scale.z = THREE.MathUtils.damp(rightBrow.current.scale.z, browVisibility, 18, delta)
-      leftBrow.current.rotation.z = THREE.MathUtils.damp(leftBrow.current.rotation.z, leftBrowRotation, 18, delta)
-      rightBrow.current.rotation.z = THREE.MathUtils.damp(rightBrow.current.rotation.z, rightBrowRotation, 18, delta)
-      leftBrow.current.position.y = THREE.MathUtils.damp(leftBrow.current.position.y, leftBrowY, 18, delta)
-      rightBrow.current.position.y = THREE.MathUtils.damp(rightBrow.current.position.y, rightBrowY, 18, delta)
-    }
   })
 
-  const closedHappy = activeAction === 'cuddle' || activeAction === 'rest'
-  const openMouth = activeAction === 'feed' || activeAction === 'explore'
-  const smiling = activeAction === 'play' || activeAction === 'cuddle' || activeAction === 'rest' || (!activeAction && (mood === 'happy' || mood === 'radiant'))
-  const frowning = !activeAction && (mood === 'grumpy' || mood === 'unwell')
-  const cheekOpacity = activeAction === 'cuddle' ? 0.95 : mood === 'radiant' || activeAction === 'play' ? 0.78 : 0.48
 
   return (
     <group
@@ -674,69 +683,100 @@ function Pet({ mood, accent, effectColor, lastAction, actionNonce, reducedMotion
       onPointerLeave={() => { document.body.style.cursor = 'default' }}
     >
       <group ref={rig}>
-        <mesh ref={leftEar} castShadow position={[-0.48, 0.76, -0.02]} rotation={[0, 0, EAR_POSES.idle[0]]}>
-          <coneGeometry args={[0.28, 0.7, 5]} />
-          <meshStandardMaterial color={accent} roughness={0.72} />
-        </mesh>
-        <mesh ref={rightEar} castShadow position={[0.48, 0.76, -0.02]} rotation={[0, 0, EAR_POSES.idle[1]]}>
-          <coneGeometry args={[0.28, 0.7, 5]} />
-          <meshStandardMaterial color={accent} roughness={0.72} />
-        </mesh>
-      <mesh castShadow position={[0, 0.18, 0]} scale={[1, 1.08, 0.85]}>
-        <sphereGeometry args={[0.82, 32, 24]} />
-        <meshStandardMaterial color={accent} roughness={0.67} />
-      </mesh>
-        <mesh ref={leftArm} castShadow position={ARM_POSES.idle.left} rotation={[0, 0, ARM_POSES.idle.leftRotation]} scale={[0.62, 1.18, 0.72]}>
-          <sphereGeometry args={[0.22, 18, 14]} />
-          <meshStandardMaterial color={accent} roughness={0.68} />
-        </mesh>
-        <mesh ref={rightArm} castShadow position={ARM_POSES.idle.right} rotation={[0, 0, ARM_POSES.idle.rightRotation]} scale={[0.62, 1.18, 0.72]}>
-          <sphereGeometry args={[0.22, 18, 14]} />
-          <meshStandardMaterial color={accent} roughness={0.68} />
-        </mesh>
-      <mesh ref={leftFoot} castShadow position={[-0.48, -0.62, 0.08]} scale={[1.2, 0.65, 1.2]}>
-        <sphereGeometry args={[0.28, 20, 16]} /><meshStandardMaterial color={accent} roughness={0.7} />
-      </mesh>
-      <mesh ref={rightFoot} castShadow position={[0.48, -0.62, 0.08]} scale={[1.2, 0.65, 1.2]}>
-        <sphereGeometry args={[0.28, 20, 16]} /><meshStandardMaterial color={accent} roughness={0.7} />
-      </mesh>
-
-      <mesh ref={leftEye} position={[-0.27, 0.25, 0.7]} scale={[1, 1, 0.55]}>
-        <sphereGeometry args={[0.105, 16, 12]} /><meshStandardMaterial color="#211a2a" roughness={0.25} />
-      </mesh>
-      <mesh ref={rightEye} position={[0.27, 0.25, 0.7]} scale={[1, 1, 0.55]}>
-        <sphereGeometry args={[0.105, 16, 12]} /><meshStandardMaterial color="#211a2a" roughness={0.25} />
-      </mesh>
-      {!closedHappy && (
-        <>
-          <mesh position={[-0.295, 0.29, 0.76]}><sphereGeometry args={[0.025, 8, 8]} /><meshBasicMaterial color="#fff" /></mesh>
-          <mesh position={[0.245, 0.29, 0.76]}><sphereGeometry args={[0.025, 8, 8]} /><meshBasicMaterial color="#fff" /></mesh>
-        </>
-      )}
-      <mesh ref={leftBrow} position={[-0.27, 0.49, 0.72]} scale={[0, 0, 0]}><boxGeometry args={[0.25, 0.035, 0.035]} /><meshBasicMaterial color="#4c2933" /></mesh>
-      <mesh ref={rightBrow} position={[0.27, 0.49, 0.72]} scale={[0, 0, 0]}><boxGeometry args={[0.25, 0.035, 0.035]} /><meshBasicMaterial color="#4c2933" /></mesh>
-      {openMouth ? (
-        <mesh position={[0, 0.03, 0.765]} scale={[1, 0.85, 0.45]}>
-          <sphereGeometry args={[0.095, 14, 10]} /><meshBasicMaterial color="#4c2933" />
-        </mesh>
-      ) : (
-        <mesh position={[0, 0.01, 0.76]} rotation={[0, 0, frowning ? Math.PI : 0]} scale={[smiling ? 1.25 : 1, 1, 1]}>
-          <torusGeometry args={[0.105, 0.022, 8, 18, Math.PI]} /><meshBasicMaterial color="#4c2933" />
-        </mesh>
-      )}
-      <mesh position={[-0.49, 0.04, 0.65]} scale={[1.4, 0.62, 0.5]}>
-        <sphereGeometry args={[0.12, 12, 10]} /><meshBasicMaterial color="#ef7f89" transparent opacity={cheekOpacity} />
-      </mesh>
-      <mesh position={[0.49, 0.04, 0.65]} scale={[1.4, 0.62, 0.5]}>
-        <sphereGeometry args={[0.12, 12, 10]} /><meshBasicMaterial color="#ef7f89" transparent opacity={cheekOpacity} />
-      </mesh>
-      {growthStage !== 'seedling' && (
-        <mesh position={[0, 0.17, -0.73]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[growthStage === 'luminary' ? 0.62 : 0.5, 0.035, 8, 28]} />
-          <meshStandardMaterial color="#fff0a8" emissive="#ffe59a" emissiveIntensity={growthStage === 'luminary' ? 0.45 : 0.15} />
-        </mesh>
-      )}
-      <PersonalityMark personality={personality} stage={growthStage} />
+        {character === 'block' ? (
+          /* 方跃：一个连续剪影（不对称阶梯顶 + 双手 + 双腿中缺口，直角 Shape+Extrude） */
+          <>
+            <mesh castShadow position={[0, 0.05, 0]}>
+              <extrudeGeometry args={[BLOCK_SHAPE, { depth: 0.5, bevelEnabled: false }]} />
+              <meshStandardMaterial color="#f0552d" roughness={0.58} />
+            </mesh>
+            {/* 阶梯顶的暗一档描边层（同轮廓略小，做出像素台阶层次） */}
+            <mesh position={[0, 0.05, 0.26]} scale={0.995}>
+              <extrudeGeometry args={[BLOCK_SHAPE, { depth: 0.02, bevelEnabled: false }]} />
+              <meshStandardMaterial color="#c43c1a" roughness={0.6} />
+            </mesh>
+            {/* 手尖 / 脚尖的小关节球（同色，属剪影一部分，保留可动动画） */}
+            <mesh ref={leftArm} castShadow position={[-0.82, -0.16, 0.1]} scale={[0.9, 0.9, 0.9]}>
+              <sphereGeometry args={[0.16, 12, 10]} />
+              <meshStandardMaterial color="#f0552d" roughness={0.58} />
+            </mesh>
+            <mesh ref={rightArm} castShadow position={[0.82, -0.16, 0.1]} scale={[0.9, 0.9, 0.9]}>
+              <sphereGeometry args={[0.16, 12, 10]} />
+              <meshStandardMaterial color="#f0552d" roughness={0.58} />
+            </mesh>
+            <mesh ref={leftFoot} castShadow position={[-0.4, -0.92, 0.08]} scale={[1.05, 0.72, 1.05]}>
+              <sphereGeometry args={[0.15, 12, 10]} />
+              <meshStandardMaterial color="#c43c1a" roughness={0.6} />
+            </mesh>
+            <mesh ref={rightFoot} castShadow position={[0.4, -0.92, 0.08]} scale={[1.05, 0.72, 1.05]}>
+              <sphereGeometry args={[0.15, 12, 10]} />
+              <meshStandardMaterial color="#c43c1a" roughness={0.6} />
+            </mesh>
+            {/* 两只清晰的黑色方眼（身体正面最外层） */}
+            <mesh ref={leftEye} position={[-0.3, 0.18, 0.52]} scale={[1, 1, 0.55]}>
+              <boxGeometry args={[0.19, 0.21, 0.1]} />
+              <meshStandardMaterial color="#20140f" roughness={0.3} />
+            </mesh>
+            <mesh ref={rightEye} position={[0.3, 0.18, 0.52]} scale={[1, 1, 0.55]}>
+              <boxGeometry args={[0.19, 0.21, 0.1]} />
+              <meshStandardMaterial color="#20140f" roughness={0.3} />
+            </mesh>
+          </>
+        ) : (
+          /* 星跃：一个连续轮廓（顶部单圆尖 → 双侧圆尖手 → 双腿 → 底中上凹） */
+          <>
+            <mesh castShadow position={[0, 0.08, 0]}>
+              <extrudeGeometry args={[STAR_SHAPE, STAR_EXTRUDE_OPTIONS]} />
+              <meshStandardMaterial color="#f8bd4a" roughness={0.42} />
+            </mesh>
+            {/* 中央红橙渐变（内嵌小红星 + 自发光；缩小后移，不侵占眼睛空间） */}
+            <mesh position={[0, 0.02, 0.14]} scale={0.56}>
+              <sphereGeometry args={[0.78, 28, 20]} />
+              <meshStandardMaterial color="#e8642a" roughness={0.5} emissive="#b2320e" emissiveIntensity={0.4} />
+            </mesh>
+            {/* 手尖 / 脚尖关节球（同色，属剪影一部分） */}
+            <mesh ref={leftArm} castShadow position={[-0.9, -0.06, 0.08]} scale={[0.95, 0.95, 0.95]}>
+              <sphereGeometry args={[0.17, 14, 10]} />
+              <meshStandardMaterial color="#f8bd4a" roughness={0.44} />
+            </mesh>
+            <mesh ref={rightArm} castShadow position={[0.9, -0.06, 0.08]} scale={[0.95, 0.95, 0.95]}>
+              <sphereGeometry args={[0.17, 14, 10]} />
+              <meshStandardMaterial color="#f8bd4a" roughness={0.44} />
+            </mesh>
+            <mesh ref={leftFoot} castShadow position={[-0.36, -0.98, 0.08]} scale={[1.05, 0.78, 1.05]}>
+              <sphereGeometry args={[0.18, 14, 10]} />
+              <meshStandardMaterial color="#f7b32b" roughness={0.48} />
+            </mesh>
+            <mesh ref={rightFoot} castShadow position={[0.36, -0.98, 0.08]} scale={[1.05, 0.78, 1.05]}>
+              <sphereGeometry args={[0.18, 14, 10]} />
+              <meshStandardMaterial color="#f7b32b" roughness={0.48} />
+            </mesh>
+            {/* 两根白色竖眼（深色背衬 + 白色竖条；z 在 extrude 前表面 0.66 之前，不被埋） */}
+            <mesh position={[-0.26, 0.42, 0.7]} scale={[1.05, 1, 0.5]}>
+              <boxGeometry args={[0.14, 0.4, 0.08]} />
+              <meshStandardMaterial color="#3a1f10" roughness={0.4} />
+            </mesh>
+            <mesh position={[0.26, 0.42, 0.7]} scale={[1.05, 1, 0.5]}>
+              <boxGeometry args={[0.14, 0.4, 0.08]} />
+              <meshStandardMaterial color="#3a1f10" roughness={0.4} />
+            </mesh>
+            <mesh ref={leftEye} position={[-0.26, 0.42, 0.77]} scale={[1, 1, 0.55]}>
+              <capsuleGeometry args={[0.055, 0.22, 4, 12]} />
+              <meshBasicMaterial color="#ffffff" />
+            </mesh>
+            <mesh ref={rightEye} position={[0.26, 0.42, 0.77]} scale={[1, 1, 0.55]}>
+              <capsuleGeometry args={[0.055, 0.22, 4, 12]} />
+              <meshBasicMaterial color="#ffffff" />
+            </mesh>
+          </>
+        )}
+        {growthStage !== 'seedling' && (
+          <mesh position={[0, 0.17, -0.73]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[growthStage === 'luminary' ? 0.62 : 0.5, 0.035, 8, 28]} />
+            <meshStandardMaterial color="#fff0a8" emissive="#ffe59a" emissiveIntensity={growthStage === 'luminary' ? 0.45 : 0.15} />
+          </mesh>
+        )}
+        {headphones && <Headphones character={character} reducedMotion={reducedMotion} />}
       <Wearable itemId={wearableId} />
       </group>
       {activeAction && (
@@ -794,6 +834,8 @@ function ThemeDecor({ theme }: { theme: ThemeDefinition }) {
 interface WorldProps {
   theme: ThemeDefinition
   mood: PetMood
+  character: CharacterId
+  headphones: boolean
   lastAction: ActionSignal
   actionNonce: number
   reducedMotion: boolean
@@ -810,7 +852,7 @@ interface PetSceneProps extends WorldProps {
   active: boolean
 }
 
-function World({ theme, mood, lastAction, actionNonce, reducedMotion, compact, personality, growthStage, incidentId, wearableId, roomItemId, onPlay }: WorldProps) {
+function World({ theme, mood, lastAction, actionNonce, reducedMotion, compact, personality, growthStage, incidentId, wearableId, roomItemId, character, headphones, onPlay }: WorldProps) {
   const shadowSize = compact ? 512 : 1024
 
   return (
@@ -832,7 +874,8 @@ function World({ theme, mood, lastAction, actionNonce, reducedMotion, compact, p
       <IncidentSignal incidentId={incidentId} />
       <Pet
         mood={mood}
-        accent={theme.accent}
+        character={character}
+        headphones={headphones}
         effectColor={theme.particle}
         lastAction={lastAction}
         actionNonce={actionNonce}

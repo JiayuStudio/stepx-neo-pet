@@ -19,26 +19,26 @@ public final class PetEngine {
     public String action(String action,long now){
         tick(now);
         if("wake".equals(action)){
-            if(!sleeping)return "点点已经醒着啦";
-            sleeping=false;sleepUntil=0;return "点点醒来了";
+            if(!sleeping)return "阶跃已经醒着啦";
+            sleeping=false;sleepUntil=0;return "阶跃醒来了";
         }
-        if(sleeping)return "点点正在睡觉，可以先唤醒它";
+        if(sleeping)return "阶跃正在睡觉，可以先唤醒它";
         long until="feed".equals(action)?feedUntil:"play".equals(action)?playUntil:restUntil;
-        if(now<until)return "稍等 "+((until-now+999)/1000)+" 秒，再陪点点互动";
+        if(now<until)return "稍等 "+((until-now+999)/1000)+" 秒，再陪阶跃互动";
         if("feed".equals(action)){
-            if(satiety>=95)return "点点已经吃饱啦";
+            if(satiety>=95)return "阶跃已经吃饱啦";
             satiety=clamp(satiety+22);mood=clamp(mood+2);intimacy=clamp(intimacy+2);
             feedUntil=now+45000;burst="eat";burstUntil=now+6000;return "吃得很香 · 亲密度 +2";
         }
         if("play".equals(action)){
-            if(energy<10)return "点点有些累了，让它休息一下";
+            if(energy<10)return "阶跃有些累了，让它休息一下";
             mood=clamp(mood+18);energy=clamp(energy-12);satiety=clamp(satiety-4);intimacy=clamp(intimacy+3);
             playUntil=now+60000;burst="play";burstUntil=now+6000;return "玩得很开心 · 亲密度 +3";
         }
         if("rest".equals(action)){
-            if(energy>=95)return "点点精神饱满，还不困";
+            if(energy>=95)return "阶跃精神饱满，还不困";
             energy=clamp(energy+18);mood=clamp(mood+2);intimacy=clamp(intimacy+1);
-            restUntil=now+90000;sleeping=true;sleepUntil=now+60000;burstUntil=0;return "点点睡着了，精力正在恢复";
+            restUntil=now+90000;sleeping=true;sleepUntil=now+60000;burstUntil=0;return "阶跃睡着了，精力正在恢复";
         }
         return "未知操作";
     }

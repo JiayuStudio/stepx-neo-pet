@@ -1,4 +1,5 @@
 export type ThemeId = 'sakura' | 'cyber' | 'moss' | 'moon'
+export type CharacterId = 'star' | 'block'
 export type GameMode = 'cozy' | 'classic'
 export type NeedKey = 'hunger' | 'joy' | 'hygiene' | 'energy' | 'health'
 export type PetNeeds = Record<NeedKey, number>
@@ -50,8 +51,16 @@ export interface StoryEvent {
   choices: readonly StoryChoice[]
 }
 
+/** 0.3.3 孵化：新领养从蛋开始；旧存档 hatched=true 直接进入养成 */
+export interface EggState {
+  startedAt: number
+  durationMs: number
+}
+
 export interface GameSnapshot {
   petName: string
+  character: CharacterId
+  headphones: boolean
   needs: PetNeeds
   bond: number
   ageMinutes: number
@@ -77,6 +86,9 @@ export interface GameSnapshot {
   ownedItemIds: KeepsakeId[]
   equippedWearable: KeepsakeId | null
   equippedRoomItem: KeepsakeId | null
+  egg: EggState | null
+  hatched: boolean
+  eggSoothedAt: number | null
 }
 
 export const clampNeed = (value: number) => Math.max(0, Math.min(100, value))

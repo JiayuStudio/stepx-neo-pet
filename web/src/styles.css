@@ -40,7 +40,7 @@
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
     mix-blend-mode: multiply;
   }
-  .topbar { min-height: 84px; height: calc(84px + env(safe-area-inset-top, 0px)); display: flex; align-items: center; justify-content: space-between; padding-top: env(safe-area-inset-top, 0px); padding-right: max(clamp(20px, 4vw, 68px), env(safe-area-inset-right, 0px)); padding-left: max(clamp(20px, 4vw, 68px), env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); position: relative; z-index: 5; }
+  .topbar { min-height: 84px; height: calc(84px + var(--safe-top)); display: flex; align-items: center; justify-content: space-between; padding-top: var(--safe-top); padding-right: max(clamp(20px, 4vw, 68px), var(--safe-right)); padding-left: max(clamp(20px, 4vw, 68px), var(--safe-left)); border-bottom: 1px solid var(--line); position: relative; z-index: 5; }
   .brand { color: inherit; text-decoration: none; display: flex; gap: 11px; align-items: center; font: 12px/1.05 'Dela Gothic One', sans-serif; letter-spacing: .04em; }
   .brand-mark { width: 42px; aspect-ratio: 1; display: grid; place-items: center; border: 2px solid; border-radius: 50% 50% 45% 48%; background: var(--accent); font-size: 11px; transform: rotate(-5deg); }
   .topbar-actions { display: flex; align-items: center; gap: 18px; }
@@ -231,7 +231,7 @@
   .signal-input > p { min-height: 30px; font-weight: 950; letter-spacing: .15em; }
   .signal-input > div { display: grid; grid-template-columns: repeat(4, 72px); gap: 10px; }
   .signal-input button { aspect-ratio: 1; border: 3px solid; background: var(--screen); cursor: pointer; font-size: 25px; box-shadow: 4px 4px 0 var(--ink); }
-  .install-overlay { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; padding: max(18px, env(safe-area-inset-top, 0px)) max(18px, env(safe-area-inset-right, 0px)) max(18px, env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); background: color-mix(in srgb, var(--ink) 88%, transparent); backdrop-filter: blur(10px); animation: fade-in .25s both; }
+  .install-overlay { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; padding: max(18px, var(--safe-top)) max(18px, var(--safe-right)) max(18px, var(--safe-bottom)) max(18px, var(--safe-left)); background: color-mix(in srgb, var(--ink) 88%, transparent); backdrop-filter: blur(10px); animation: fade-in .25s both; }
   .install-dialog { width: min(760px, 100%); max-height: 94vh; overflow: auto; display: grid; grid-template-columns: .8fr 1.2fr; position: relative; border: 3px solid var(--ink); background: var(--paper); box-shadow: 14px 14px 0 var(--shell); }
   .install-art { min-height: 430px; display: grid; place-items: center; position: relative; overflow: hidden; border-right: 3px solid var(--ink); background: radial-gradient(circle, var(--glow), var(--shell)); }
   .install-device { width: 150px; height: 185px; display: grid; place-items: center; position: relative; isolation: isolate; border: 4px solid var(--ink); border-radius: 47% 47% 44% 44%; background: var(--accent); box-shadow: inset 12px 9px 0 color-mix(in srgb, white 25%, transparent), 9px 11px 0 var(--ink); font: 20px monospace; }
@@ -284,7 +284,7 @@
   .theme-copy em { grid-column: 2; margin-top: 7px; font-size: 11px; font-style: normal; opacity: .62; }
   .select-dot { width: 14px; aspect-ratio: 1; border: 2px solid; border-radius: 50%; }
   .selected .select-dot { background: var(--card-color); box-shadow: inset 0 0 0 2px var(--paper); }
-  footer { min-height: 90px; padding: 22px max(clamp(22px, 5vw, 84px), env(safe-area-inset-right, 0px)) max(22px, env(safe-area-inset-bottom, 0px)) max(clamp(22px, 5vw, 84px), env(safe-area-inset-left, 0px)); display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--line); font-size: 9px; font-weight: 900; letter-spacing: .14em; }
+  footer { min-height: 90px; padding: 22px max(clamp(22px, 5vw, 84px), var(--safe-right)) max(22px, var(--safe-bottom)) max(clamp(22px, 5vw, 84px), var(--safe-left)); display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--line); font-size: 9px; font-weight: 900; letter-spacing: .14em; }
   footer button { border: 0; border-bottom: 1px solid; background: transparent; font-size: 9px; font-weight: 900; cursor: pointer; letter-spacing: .1em; }
   .story-overlay { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 20px; background: color-mix(in srgb, var(--ink) 78%, transparent); backdrop-filter: blur(8px); animation: fade-in .25s both; }
   .story-dialog { width: min(920px, 100%); max-height: min(680px, 92vh); overflow: auto; display: grid; grid-template-columns: .9fr 1.1fr; position: relative; border: 3px solid var(--ink); background: var(--paper); box-shadow: 16px 16px 0 var(--shell); }
@@ -364,15 +364,15 @@
   }
 
   @media (max-width: 760px) {
-    .topbar { min-height: 70px; height: calc(70px + env(safe-area-inset-top, 0px)); padding-top: env(safe-area-inset-top, 0px); padding-right: max(17px, env(safe-area-inset-right, 0px)); padding-left: max(17px, env(safe-area-inset-left, 0px)); }
+    .topbar { min-height: 70px; height: calc(70px + var(--safe-top)); padding-top: var(--safe-top); padding-right: max(17px, var(--safe-right)); padding-left: max(17px, var(--safe-left)); }
     .topbar-actions { gap: 8px; }
     .save-status { display: none; }
     .text-button { padding: 8px 10px; font-size: 8px; }
-    .return-brief { width: auto; margin: 14px max(17px, env(safe-area-inset-right, 0px)) 0 max(17px, env(safe-area-inset-left, 0px)); padding: 16px; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; box-shadow: 5px 5px 0 color-mix(in srgb, var(--shell) 55%, var(--ink)); }
+    .return-brief { width: auto; margin: 14px max(17px, var(--safe-right)) 0 max(17px, var(--safe-left)); padding: 16px; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; box-shadow: 5px 5px 0 color-mix(in srgb, var(--shell) 55%, var(--ink)); }
     .return-brief-mark { width: 42px; }
     .return-brief-copy h2 { font-size: 17px; }
     .return-brief-actions { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr auto; }
-    .game-layout { min-height: 0; grid-template-columns: 1fr; padding: 34px max(17px, env(safe-area-inset-right, 0px)) max(60px, env(safe-area-inset-bottom, 0px)) max(17px, env(safe-area-inset-left, 0px)); gap: 30px; }
+    .game-layout { min-height: 0; grid-template-columns: 1fr; padding: 34px max(17px, var(--safe-right)) max(60px, var(--safe-bottom)) max(17px, var(--safe-left)); gap: 30px; }
     .hero-copy { padding-top: 0; display: grid; grid-template-columns: 1fr 1fr; align-items: end; }
     .hero-copy .eyebrow { grid-column: 1 / -1; }
     .hero-copy h1 { margin: 0; font-size: clamp(46px, 14vw, 74px); }
@@ -405,8 +405,8 @@
     .vault-heading { align-items: start; flex-direction: column; gap: 16px; }
     .vault-grid { grid-template-columns: 1fr; }
     .vault-actions button, .vault-restore { width: 100%; }
-    .game-overlay, .tutorial-overlay, .install-overlay, .story-overlay { padding: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); }
-    .game-dialog, .story-dialog, .tutorial-dialog, .install-dialog { max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overflow: auto; }
+    .game-overlay, .tutorial-overlay, .install-overlay, .story-overlay { padding: max(12px, var(--safe-top)) max(12px, var(--safe-right)) max(12px, var(--safe-bottom)) max(12px, var(--safe-left)); }
+    .game-dialog, .story-dialog, .tutorial-dialog, .install-dialog { max-height: calc(100dvh - 24px - var(--safe-top) - var(--safe-bottom)); overflow: auto; }
     .game-dialog > header { min-height: 100px; padding: 17px; }
     .game-dialog header > button, .dialog-close { width: 44px; min-height: 44px; }
     .star-field, .memory-board { min-height: min(350px, 52dvh); }
@@ -472,7 +472,7 @@
   }
 
   @media (max-width: 360px) {
-    .topbar { padding-right: max(10px, env(safe-area-inset-right, 0px)); padding-left: max(10px, env(safe-area-inset-left, 0px)); }
+    .topbar { padding-right: max(10px, var(--safe-right)); padding-left: max(10px, var(--safe-left)); }
     .brand { min-width: 44px; min-height: 44px; }
     .brand > span:last-child, .install-label-long { display: none; }
     .install-label-short { display: inline; }

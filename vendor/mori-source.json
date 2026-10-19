@@ -3,11 +3,23 @@
   "commit": "4ffa9c3de87d58d6b962a4d2fcd12c3fa5250c23",
   "license": "MIT",
   "modules": {
-    "progression.ts": "3d11ee6e30f1b1a49dbba43f250aad783c8e253f03307eace3681339961dc213",
-    "save.ts": "5936adc8e32301086c0db5f439292cdc2d16c901971e2974e02810a0996da08f",
-    "store.ts": "db700483404e43e153e9fa80113aa850166733a5e03a5bc9745972f6daedf61a",
+    "progression.ts": "290d1932597295adc7ac47d77bbde7c26800cccb9d251abd3fe66dc85b32f3d5",
+    "save.ts": "07b90d9b30d60c1e2ab8cee2b46226eedaaeb78769081e9fc499cfd7606c4777",
+    "store.ts": "71f98c5706540a40d064beea7839d39839bc0658a56df2b80a23e31ae9a2833b",
     "stories.ts": "fac5186bfff86a3875a8326d544dc85f1f03d8a421b16f36a9bce2e18a806bdc",
     "transfer.ts": "1005a01b6264ba56dee72aea70754b536a7b50d260a631cdbe0f36d2d3b5d0b8",
-    "types.ts": "a271b5cfb5cfc65cbf56145793403786962a9a1c4de307c83b607ae6ca4fb6e0"
+    "types.ts": "10a8e4556757941b78890808953655c57fbcde3e6d8b767ab0f0335c31918138"
+  },
+  "fork": {
+    "note": "0.3.3 \u8d77\u672c\u5de5\u7a0b\u5206\u53c9\u4e0a\u6e38 MIT \u5f15\u64ce\u4ee5\u652f\u6301\u89d2\u8272/\u8033\u673a/\u5b75\u5316\u4e0e\u9ed8\u8ba4\u540d\u8fc1\u79fb\uff1b\u672a\u6539\u6a21\u5757\u4fdd\u6301\u4e0a\u6e38\u54c8\u5e0c",
+    "forkedModules": [
+      "progression.ts",
+      "save.ts",
+      "store.ts",
+      "types.ts"
+    ],
+    "license": "MIT",
+    "upstreamRepository": "https://github.com/Tech-aficionado/Tamagochi---Open-Source-Game",
+    "upstreamCommit": "4ffa9c3de87d58d6b962a4d2fcd12c3fa5250c23"
   }
 }

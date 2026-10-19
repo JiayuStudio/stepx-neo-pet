@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import {
   CARE_GROWTH_COOLDOWN_MS,
   CARE_TRAIT,
+  DEFAULT_CHARACTER_NAMES,
   INCIDENT_BY_ID,
   INCIDENT_REWARD_GROWTH,
   INCIDENT_REWARD_SPARKS,
@@ -18,7 +19,7 @@ import {
 import { freshSnapshot, normalizeSnapshot } from './save'
 import { isStoryUnlocked, STORY_EVENTS } from './stories'
 import { parseSaveTransfer, saveFileName, serializeSave } from './transfer'
-import { clampNeed, type CareAction, type GameMode, type GameSnapshot, type KeepsakeId, type MiniGameId, type PetNeeds, type ThemeId } from './types'
+import { clampNeed, type CareAction, type CharacterId, type GameMode, type GameSnapshot, type KeepsakeId, type MiniGameId, type PetNeeds, type ThemeId } from './types'
 
 export { getStoryBondRequirement, isStoryUnlocked, STORY_COUNT, STORY_EVENTS } from './stories'
 
@@ -50,6 +51,9 @@ export interface GameState extends GameSnapshot {
   closeStory: () => void
   setTheme: (themeId: ThemeId) => void
   setMode: (mode: GameMode) => void
+  setCharacter: (character: CharacterId) => void
+  setHeadphones: (on: boolean) => void
+  sootheEgg: () => void
   exportSave: () => SaveExport
   importSave: (contents: string) => SaveImportResult
   reset: () => void
@@ -216,6 +220,20 @@ export const useGameStore = create<GameState>()(
       closeStory: () => set({ storyOpen: false }),
       setTheme: (themeId) => set({ themeId, lastReply: null }),
       setMode: (mode) => set((state) => ({ ...settleTimedState(state, Date.now()), mode })),
+      setCharacter: (character) => set((state) => {
+        if (character !== 'star' && character !== 'block') return state
+        if (character === state.character) return state
+        const petName = state.petName === DEFAULT_CHARACTER_NAMES[state.character] ? DEFAULT_CHARACTER_NAMES[character] : state.petName
+        return { ...settleTimedState(state, Date.now()), character, petName, lastAction: 'workshop', actionNonce: state.actionNonce + 1, lastReply: null }
+      }),
+      // 蛋阶段轻触安抚：只记录时间戳与反馈，不加速孵化、不影响成长
+      sootheEgg: () => set((state) => {
+        if (state.hatched || !state.egg) return state
+        return { ...state, eggSoothedAt: Date.now(), actionNonce: state.actionNonce + 1, lastAction: null, lastReply: '蛋轻轻晃了晃，好像在回应你。' }
+      }),
+      setHeadphones: (on) => set((state) => (
+        state.headphones === (on === true) ? state : { ...state, headphones: on === true, lastAction: 'workshop', actionNonce: state.actionNonce + 1, lastReply: null }
+      )),
       exportSave: () => {
         const now = Date.now()
         const snapshot = normalizeSnapshot(get(), now)

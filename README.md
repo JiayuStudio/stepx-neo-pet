@@ -1,10 +1,12 @@
-# 点点 · Neo 背屏电子宠物
+# 拓麻歌子 · Neo 背屏电子宠物
 
 让 STEPX Neo 背面的 17×23 点阵住进一只可以照料、成长和换装的小伙伴。正面是 Mori 3D 养成世界，背面是对应的像素形象，两边共用同一份进度。
 
-**当前版本：0.3.2** · [下载 APK](https://github.com/JiayuStudio/stepx-neo-pet/releases/tag/v0.3.2) · [更新记录](CHANGELOG.md) · [StepX Neo 研究所](https://github.com/JiayuStudio/stepx-neo-lab)
+**当前版本：0.3.4** · [下载 APK](https://github.com/JiayuStudio/stepx-neo-pet/releases/tag/v0.3.4) · [更新记录](CHANGELOG.md) · [StepX Neo 研究所](https://github.com/JiayuStudio/stepx-neo-lab)
 
-![背屏动作与外观示例](docs/matrix-preview.png)
+[![拓麻歌子宣传片](docs/promo-poster.png)](https://github.com/JiayuStudio/stepx-neo-pet/releases/download/v0.3.4/tamagochi-promo-60s.mp4)
+
+[观看／下载 60 秒宣传片](https://github.com/JiayuStudio/stepx-neo-pet/releases/download/v0.3.4/tamagochi-promo-60s.mp4) · 竖屏动画演示，非真机实拍；配乐由 Suno 生成。
 
 ## 可以做什么
 
@@ -12,15 +14,18 @@
 - 三个成长阶段、三种性格、五段回忆剧情和照料事件。
 - 接星星、记忆信号两款小游戏，获得星屑，兑换饰品和房间摆件。
 - 四个主题世界，JSON 存档导出与恢复。
-- 背屏呈现圆身体、小耳朵、短手脚、性格标记和对应位置的饰品。七种动作与成长、性格、穿戴状态组合为 252 组动画。
+- 新领养从蛋开始，经历裂纹、破壳与幼体；已有存档可继续使用。
+- 星跃与方跃两种角色，可切换耳机；17×23 点阵保留小尺寸五官、短手脚、眨眼与小跳。
+- 双角色、耳机、成长、性格、穿戴与动作组合，共 1014 组角色及孵化动画，另有默认帧。
+- 手机导航避开状态栏，前台背屏预览与原生显示共用点阵数据。
 - 原生前台服务负责养成计时和背屏逐帧输出；离开正面页面后仍可运行。通知和 App 内均有停止入口。
 
 ## 安装与开始陪伴
 
 适用于带有兼容背屏接口的 STEPX Neo，最低 Android 14。其他手机的点阵硬件不在支持范围内。
 
-1. 从 [v0.3.2 发布页](https://github.com/JiayuStudio/stepx-neo-pet/releases/tag/v0.3.2) 下载 `diandian-native-0.3.2.apk`，按 Android 提示安装。已有同签名原生版可覆盖升级；升级前可在“存档”导出备份。
-2. 打开“点点”，允许通知，点“开启背屏”。一次只运行一个背屏播放器。
+1. 从 [v0.3.4 发布页](https://github.com/JiayuStudio/stepx-neo-pet/releases/tag/v0.3.4) 下载 `diandian-native-0.3.4.apk`，按 Android 提示安装。已有同签名原生版可覆盖升级；升级前可在“存档”导出备份。
+2. 打开“拓麻歌子”，允许通知，点“开启背屏”。一次只运行一个背屏播放器。
 3. 打开“后台设置”，允许后台运行并关闭本应用的电池优化。
 4. 把背屏朝上或竖直放置，保持无遮挡，锁屏观察动作是否继续。
 5. 点“停止陪伴”会清除自定义画面并恢复之前的系统背屏模式。
@@ -46,9 +51,11 @@ adb shell dumpsys activity freeze whiteRemove com.diandian.neopet
 
 ## 已验证范围
 
-0.3.2 已完成构建、安装包与安装副本校验，升级保留成长、性格与饰品。连续锁屏约 136 秒期间主屏没有唤醒，宠物本体持续变化；实物观察确认背屏与正面形象接近且持续有动作。
+0.3.4 已完成最终源码重建、同签名覆盖安装与系统版本核对；用户已确认真机背屏动画和锁屏持续运行成功。本版没有记录独立计时的锁屏时长，不沿用旧版时长作为本版测试数据。
 
-该锁屏测试连接 USB。长期耗电、脱离充电的深度待机、重启恢复及所有固件组合仍待验证。完整养成、小游戏、奖励、装备和文件备份流程在 0.3.0 验证；0.3.2 保留原养成核心，主要调整背屏外观。
+5600 项点阵检查通过；浏览器实际检查了安全区、导航按钮、锚点避让和无横向溢出。Studio 构建及 19 项预览适配回归通过。原生后台服务和显示会话与 0.3.3 相同。
+
+长期耗电、脱离充电的深度待机、重启恢复及全部固件组合仍待验证。完整养成、小游戏、奖励、装备和文件备份流程曾在 0.3.0 验证，本轮未逐项重测。
 
 ## 从源码构建
 
@@ -57,15 +64,12 @@ adb shell dumpsys activity freeze whiteRemove com.diandian.neopet
 ```sh
 cd web
 npm ci --ignore-scripts
-npm run lint
 npm run build
 cd ..
 node tools/build-engine.mjs
 node tools/export-art.mjs
 node tools/test-art.mjs
-python3 tools/test-appearance.py
 python3 tools/test-mori.py
-python3 tools/test.py
 python3 tools/build.py
 ```
 

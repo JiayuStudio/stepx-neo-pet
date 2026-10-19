@@ -20,14 +20,14 @@ public final class PetService extends Service {
     @Override public void onCreate(){
         super.onCreate();instance=this;
         NotificationManager nm=getSystemService(NotificationManager.class);
-        nm.createNotificationChannel(new NotificationChannel("pet-companion","点点背屏陪伴",NotificationManager.IMPORTANCE_LOW));
+        nm.createNotificationChannel(new NotificationChannel("pet-companion","拓麻歌子背屏陪伴",NotificationManager.IMPORTANCE_LOW));
         startForeground(1,notification(),ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
     }
     private Notification notification(){
         PendingIntent open=PendingIntent.getActivity(this,0,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         PendingIntent stop=PendingIntent.getService(this,1,new Intent(this,PetService.class).setAction(STOP),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         return new Notification.Builder(this,"pet-companion").setSmallIcon(android.R.drawable.ic_menu_view)
-            .setContentTitle("点点正在背屏陪着你").setContentText("返回桌面或锁屏可继续 · 点击停止结束陪伴")
+            .setContentTitle("拓麻歌子正在背屏陪着你").setContentText("返回桌面或锁屏可继续 · 点击停止结束陪伴")
             .setContentIntent(open).setOngoing(true).setOnlyAlertOnce(true)
             .addAction(new Notification.Action.Builder(null,"停止陪伴",stop).build()).build();
     }

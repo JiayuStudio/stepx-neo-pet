@@ -60,7 +60,7 @@ public final class MainActivity extends Activity {
             try{return PetStore.dispatch(MainActivity.this,action,args);}catch(Exception e){try{return new JSONObject().put("error", "操作未完成："+e.getMessage()).toString();}catch(Exception ignored){return "{}";}}
         }
         @JavascriptInterface public String companion(){
-            try{return new JSONObject().put("running",PetService.running()).put("status",PetService.status(MainActivity.this)).put("version","0.3.2").toString();}catch(Exception e){return "{}";}
+            try{return new JSONObject().put("running",PetService.running()).put("status",PetService.status(MainActivity.this)).put("version","0.3.3").toString();}catch(Exception e){return "{}";}
         }
         @JavascriptInterface public void control(String action){main.post(()->{
             if(isFinishing()||isDestroyed())return;
@@ -101,7 +101,7 @@ public final class MainActivity extends Activity {
     private void backgroundSettings(){
         PowerManager p=getSystemService(PowerManager.class);
         if(!p.isIgnoringBatteryOptimizations(getPackageName()))startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,Uri.parse("package:"+getPackageName())));
-        else new AlertDialog.Builder(this).setTitle("电池优化豁免已开启").setMessage("可在“耗电和后台”中检查允许后台运行。系统强行停止或重启后，请重新打开点点。").setPositiveButton("应用信息",(d,w)->startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+getPackageName())))).setNegativeButton("返回",null).show();
+        else new AlertDialog.Builder(this).setTitle("电池优化豁免已开启").setMessage("可在“耗电和后台”中检查允许后台运行。系统强行停止或重启后，请重新打开拓麻歌子。").setPositiveButton("应用信息",(d,w)->startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+getPackageName())))).setNegativeButton("返回",null).show();
     }
     private void requestStart(){
         if(checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){pendingStart=true;requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},100);}else startCompanion();

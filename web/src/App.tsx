@@ -9,6 +9,7 @@ import { FirstRunTutorial } from './ui/FirstRunTutorial'
 import { GrowthStudio } from './ui/GrowthStudio'
 import { feedback } from './zh'
 import { NeoCompanion } from './ui/NeoCompanion'
+import { MatrixPreview } from './ui/MatrixPreview'
 import { PocketVault } from './ui/PocketVault'
 
 const PetScene = lazy(() => import('./scene/PetScene').then((module) => ({ default: module.PetScene })))
@@ -133,12 +134,12 @@ const formatAwayTime = (minutes: number) => {
 }
 
 const MOOD_COPY = {
-  radiant: ['闪闪发亮', '点点今天闪闪发亮。'],
+  radiant: ['闪闪发亮', '它今天闪闪发亮。'],
   happy: ['心满意足', '小世界里，响起开心的哼唱。'],
-  peckish: ['有点饿啦', '点点正望着零食发呆。'],
+  peckish: ['有点饿啦', '它正望着零食发呆。'],
   sleepy: ['困困的', '眼皮开始打架了。'],
   grumpy: ['有点烦躁', '有点不开心，需要你陪陪。'],
-  unwell: ['需要照顾', '靠近一点，点点需要照顾。'],
+  unwell: ['需要照顾', '靠近一点，它需要照顾。'],
 } as const
 
 function Gauge({ label, glyph, value }: { label: string; glyph: string; value: number }) {
@@ -183,9 +184,9 @@ export default function App() {
   const returnAction = returnBrief ? ACTIONS.find((action) => action.id === returnBrief.recommendedAction) : null
   const returnNeed = returnBrief ? NEEDS.find((need) => need.id === returnBrief.changedNeed) : null
   const returnIncident = returnBrief?.incidentId ? INCIDENT_BY_ID[returnBrief.incidentId] : null
-  const sceneActive = sceneInView && pageVisible && !tutorialOpen && !installGuideOpen && !game.storyOpen
+  const sceneActive = sceneInView && pageVisible && !tutorialOpen && !installGuideOpen && !game.storyOpen && game.hatched
 
-  let noticeLabel = '点点的心声'
+  let noticeLabel = `${game.petName}的心声`
   if (game.lastAction === 'story') noticeLabel = '回忆已保存'
   if (game.lastAction === 'activity') noticeLabel = '游戏收获'
   if (game.lastAction === 'workshop') noticeLabel = '装饰工坊'
@@ -205,6 +206,41 @@ export default function App() {
     update()
     media.addEventListener('change', update)
     return () => media.removeEventListener('change', update)
+  }, [])
+
+  // 0.3.4 安全区策略：只有**真实原生壳**才归零（其 MainActivity 已给 root 加 WindowInsets padding，
+  // 归零避免双重留白）。浏览器预览的 neo-browser 适配器也会装模拟 NeoNative——必须排除：
+  // 模拟桥带 browserPreview 标记且 companion() 返回 preview:true。其余（Studio iframe /
+  // 手机浏览器 / 桌面）走真实 env()，窄屏 env=0 时标记 phone 给 44px 顶部保留与底部手势区。
+  // resize / orientationchange 时重新判定（横竖屏、窗口变化）。
+  useEffect(() => {
+    const root = document.documentElement
+    const apply = () => {
+      const bridge = window.NeoNative as undefined | { companion?: () => string; browserPreview?: boolean }
+      const isPreviewBridge = !bridge || bridge.browserPreview === true || (() => {
+        try { return JSON.parse(bridge.companion?.() ?? '{}').preview === true } catch { return true }
+      })()
+      if (!isPreviewBridge) {
+        root.dataset.neoInsets = 'native'
+        return
+      }
+      const probe = document.createElement('div')
+      probe.style.cssText = 'position:fixed;top:-999px;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)'
+      document.body.appendChild(probe)
+      const style = getComputedStyle(probe)
+      const envTop = Number.parseFloat(style.paddingTop) || 0
+      const envBottom = Number.parseFloat(style.paddingBottom) || 0
+      probe.remove()
+      const narrow = window.matchMedia('(max-width: 600px)').matches
+      root.dataset.neoInsets = narrow && envTop === 0 && envBottom === 0 ? 'phone' : 'env'
+    }
+    apply()
+    window.addEventListener('resize', apply)
+    window.addEventListener('orientationchange', apply)
+    return () => {
+      window.removeEventListener('resize', apply)
+      window.removeEventListener('orientationchange', apply)
+    }
   }, [])
 
   useEffect(() => {
@@ -299,7 +335,7 @@ export default function App() {
       <header className="topbar">
         <a className="brand" href="#home" aria-label="Tamagochi home">
           <span className="brand-mark" aria-hidden="true">T</span>
-          <span>点点<br />MORI</span>
+          <span>拓麻<br />歌子</span>
         </a>
         <div className="topbar-actions">
           <span className="save-status"><i /> LOCAL SAVE</span>
@@ -345,6 +381,9 @@ export default function App() {
           <p className="hero-note">一只会记住你如何照顾它的小生命。</p>
         </section>
 
+        {/* 背屏预览优先：独立纵向 17:23 屏框（点阵核心布局，旧横向 3D 容器不再约束它） */}
+        <MatrixPreview snapshot={game} onSoothe={() => game.sootheEgg()} />
+
         <section className="device-stage" aria-label={`${game.petName}'s ${theme.name} device`}>
           <div className="device-shadow" />
           <div className="device">
@@ -355,11 +394,13 @@ export default function App() {
                 <span>{moodCopy[0]}</span>
                 <span>年龄 {ageLabel}</span>
               </div>
-              <div ref={sceneWrapRef} className="scene-wrap">
+              <div ref={sceneWrapRef} className="scene-wrap matrix-scene-secondary">
                 <Suspense fallback={<div className="scene-loading">正在醒来……</div>}>
                   <PetScene
                     theme={theme}
                     mood={mood}
+                    character={game.character}
+                    headphones={game.headphones}
                     lastAction={game.lastAction}
                     actionNonce={game.actionNonce}
                     reducedMotion={reducedMotion}
@@ -373,7 +414,7 @@ export default function App() {
                     onPlay={() => care('play')}
                   />
                 </Suspense>
-                <button className="scene-play-button" onClick={() => care('play')}>和点点玩</button>
+                <button className="scene-play-button" onClick={() => care('play')}>和它玩</button>
                 {activeAction && actionFeedback && (
                   <div key={`action-${game.actionNonce}`} className={`action-feedback action-feedback-${activeAction}`} role="status" aria-live="polite">
                     <i className="action-feedback-burst" aria-hidden="true" />
@@ -428,6 +469,35 @@ export default function App() {
               )
             })}
           </div>
+          <div className="character-picker" role="group" aria-label="角色与耳机">
+            <span className="character-picker-label">形象</span>
+            <div className="character-options">
+              <button
+                type="button"
+                className={game.character === 'star' ? 'character-option active' : 'character-option'}
+                aria-pressed={game.character === 'star'}
+                onClick={() => game.setCharacter('star')}
+              >
+                <b>星跃</b><small>圆润星形精灵</small>
+              </button>
+              <button
+                type="button"
+                className={game.character === 'block' ? 'character-option active' : 'character-option'}
+                aria-pressed={game.character === 'block'}
+                onClick={() => game.setCharacter('block')}
+              >
+                <b>方跃</b><small>像素方块精灵</small>
+              </button>
+              <button
+                type="button"
+                className={game.headphones ? 'character-option active' : 'character-option'}
+                aria-pressed={game.headphones}
+                onClick={() => game.setHeadphones(!game.headphones)}
+              >
+                <b>耳机</b><small>{game.headphones ? '已戴上' : '未戴上'}</small>
+              </button>
+            </div>
+          </div>
           <button className="story-button" onClick={game.openStory} disabled={!storyUnlocked}>
             <span>{!story ? '所有回忆已收集' : storyUnlocked ? '打开下一段回忆' : `亲密度 ${storyRequirement}% 解锁下一段回忆`}</span><b>→</b>
           </button>
@@ -435,7 +505,7 @@ export default function App() {
       </main>
 
       {game.lastReply && !game.storyOpen && (
-        <div key={game.actionNonce} className="reply-toast" role="status"><span>{noticeLabel}</span>{feedback(game.lastReply)}</div>
+        <div key={game.actionNonce} className="reply-toast" role="status"><span>{noticeLabel}</span>{feedback(game.lastReply, game.petName)}</div>
       )}
 
       <GrowthStudio />
@@ -467,11 +537,11 @@ export default function App() {
       <PocketVault />
 
       <footer>
-        <span>点点 0.3.2 · 基于 Mori 开源项目</span>
+        <span>拓麻歌子 0.3.4 · 星跃 / 方跃 · 基于 Mori 开源项目</span>
         <button onClick={() => { if (window.confirm('重新领养会清空当前进度。请先导出备份，确定重新开始吗？')) game.reset() }}>重新领养</button>
       </footer>
 
-      {game.storyOpen && story && (
+      {game.storyOpen && story && game.hatched && (
         <div className="story-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) game.closeStory() }}>
           <section className="story-dialog" role="dialog" aria-modal="true" aria-labelledby="story-title">
             <button className="dialog-close" onClick={game.closeStory} aria-label="关闭回忆">×</button>
@@ -485,7 +555,7 @@ export default function App() {
                   <button key={choice.label} onClick={() => game.chooseStory(index)}><span>{choice.label}</span><b>→</b></button>
                 ))}
               </div>
-              <small>你的选择，会影响点点未来的成长。</small>
+              <small>你的选择，会影响它未来的成长。</small>
             </div>
           </section>
         </div>

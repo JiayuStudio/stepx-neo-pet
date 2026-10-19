@@ -47,9 +47,9 @@ export const GrowthStudio = () => {
       <div className="growth-heading">
         <div>
           <p className="eyebrow">成长与性格</p>
-          <h2 id="growth-title">点点的<br /><em>成长手帐。</em></h2>
+          <h2 id="growth-title">成长手帐。</h2>
         </div>
-        <p>每种性格都有自己的可爱之处。日常照料会慢慢影响点点的性格。</p>
+        <p>每种性格都有自己的可爱之处。日常照料会慢慢影响它的性格。</p>
       </div>
 
       <div className="growth-dashboard">

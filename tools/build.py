@@ -20,11 +20,14 @@ def run(args, **kwargs):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--unsigned', action='store_true', help='Build without accessing any signing key')
     parser.add_argument('--release', action='store_true', help='Require an existing signing key')
     parser.add_argument('--keystore', type=Path)
     parser.add_argument('--ks-key-alias', default='backscreen-toolbox')
     parser.add_argument('--ks-pass-env', default='BACKSCREEN_STORE_PASS')
     args = parser.parse_args()
+    if args.unsigned and (args.release or args.keystore):
+        parser.error('--unsigned cannot be combined with signing options')
     if args.release and (not args.keystore or not args.keystore.is_file()):
         parser.error('--release requires --keystore pointing to an existing private key')
     if args.release and not os.environ.get(args.ks_pass_env):
@@ -57,6 +60,16 @@ def main():
                     if name.endswith('.properties'):
                         archive.writestr(name, library.read(name), compress_type=zipfile.ZIP_DEFLATED)
     run([sdk_tool(bt, 'zipalign'), '-P', '16', '-f', '4', out / 'unsigned.apk', out / 'aligned.apk'])
+
+    if args.unsigned:
+        dist = ROOT / 'artifacts'
+        dist.mkdir(exist_ok=True)
+        version = ET.parse(ROOT / 'app/AndroidManifest.xml').getroot().get('{http://schemas.android.com/apk/res/android}versionName')
+        apk = dist / ('diandian-native-' + version + '-unsigned.apk')
+        shutil.copy2(out / 'aligned.apk', apk)
+        (dist / (apk.name + '.sha256')).write_text(hashlib.sha256(apk.read_bytes()).hexdigest() + '  ' + apk.name + '\n')
+        print(apk.name + ' built without signing')
+        return
 
     if args.release:
         keystore, alias, pass_env = args.keystore, args.ks_key_alias, args.ks_pass_env

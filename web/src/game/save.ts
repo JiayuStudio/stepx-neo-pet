@@ -1,6 +1,9 @@
 import {
+  EGG_DURATION_MS,
   INITIAL_INCIDENT_DELAY_MS,
   KEEPSAKE_BY_ID,
+  DEFAULT_CHARACTER_NAMES,
+  isCharacterId,
   isIncidentId,
   isKeepsakeId,
   isPersonalityId,
@@ -39,7 +42,12 @@ const validDate = (value: unknown, now: number) => {
 const validTimestamp = (value: unknown, fallback: number, now: number, futureLimit = now) => bounded(value, fallback, 0, futureLimit)
 
 export const freshSnapshot = (now = Date.now()): GameSnapshot => ({
-  petName: 'Mori',
+  petName: DEFAULT_CHARACTER_NAMES.star,
+  character: 'star',
+  headphones: false,
+  egg: { startedAt: now, durationMs: EGG_DURATION_MS },
+  hatched: false,
+  eggSoothedAt: null,
   needs: { hunger: 78, joy: 72, hygiene: 84, energy: 76, health: 92 },
   bond: 4,
   ageMinutes: 0,
@@ -135,13 +143,39 @@ export const normalizeSnapshot = (value: unknown, now = Date.now()): GameSnapsho
   const lastUpdated = validTimestamp(source.lastUpdated, now, now)
   const action = ACTIONS.includes(source.lastAction as ActionSignal) ? source.lastAction as ActionSignal : null
   const reply = typeof source.lastReply === 'string' && source.lastReply.length <= 500 ? source.lastReply : null
-  const petName = typeof source.petName === 'string' && source.petName.trim() ? source.petName.trim().slice(0, 30) : fresh.petName
+  const legacy = !isCharacterId(source.character)
+  const character = legacy ? fresh.character : (source.character as GameSnapshot['character'])
+  const headphones = typeof source.headphones === 'boolean' ? source.headphones : fresh.headphones
+  // 孵化迁移：完全没有 egg/hatched 字段的旧存档（0.3.2 / 早期 0.3.3）视作已孵化，保留进度
+  const hasEggFields = 'egg' in source || 'hatched' in source
+  const legacyHatched = !hasEggFields
+  const egg = legacyHatched || !isRecord(source.egg) || typeof (source.egg as { startedAt?: unknown }).startedAt !== 'number'
+    ? null
+    : {
+        startedAt: validTimestamp((source.egg as { startedAt: unknown }).startedAt, now, now, now + EGG_DURATION_MS),
+        durationMs: EGG_DURATION_MS,
+      }
+  const hatched = legacyHatched ? true : typeof source.hatched === 'boolean' ? source.hatched : egg === null
+  const eggSoothedAt = typeof source.eggSoothedAt === 'number' && Number.isFinite(source.eggSoothedAt)
+    ? validTimestamp(source.eggSoothedAt, now, now, now + EGG_DURATION_MS)
+    : null
+  const rawName = typeof source.petName === 'string' && source.petName.trim() ? source.petName.trim().slice(0, 30) : fresh.petName
+  // 已知系统默认名（点点 / Mori / 另一角色默认名）一律迁移为当前角色默认名；自定义名保留
+  const otherDefault = DEFAULT_CHARACTER_NAMES[character === 'star' ? 'block' : 'star']
+  const petName = rawName === '点点' || rawName === 'Mori' || rawName === otherDefault
+    ? DEFAULT_CHARACTER_NAMES[character]
+    : rawName
   const mode = MODES.includes(source.mode as GameMode) ? source.mode as GameMode : fresh.mode
   const themeId = THEMES.includes(source.themeId as ThemeId) ? source.themeId as ThemeId : fresh.themeId
   const personalityFocus = isPersonalityId(source.personalityFocus) ? source.personalityFocus : fresh.personalityFocus
 
   return {
     petName,
+    character,
+    headphones,
+    egg,
+    hatched,
+    eggSoothedAt,
     needs,
     bond,
     ageMinutes: bounded(source.ageMinutes, 0, 0, 10_000_000),

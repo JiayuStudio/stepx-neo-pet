@@ -1,7 +1,7 @@
 {
   "name": "tamagochi",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.3.2",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -11,7 +11,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "predev": "node ../tools/build-engine.mjs",
+    "prebuild": "node ../tools/build-engine.mjs"
   },
   "dependencies": {
     "@fontsource-variable/nunito": "5.2.7",

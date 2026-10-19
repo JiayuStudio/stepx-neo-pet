@@ -91,8 +91,18 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isEquippable = exports.canPurchaseKeepsake = exports.scheduleIncidentAfterResolution = exports.settleTimedState = exports.clampPercent = exports.selectIncidentId = exports.getIncidentDelayMs = exports.utcDateKey = exports.getGrowthProgress = exports.getGrowthStage = exports.applyTraitAward = exports.getDominantPersonality = exports.isKeepsakeId = exports.isIncidentId = exports.isPersonalityId = exports.KEEPSAKE_BY_ID = exports.INCIDENT_BY_ID = exports.KEEPSAKE_IDS = exports.INCIDENT_IDS = exports.PERSONALITY_IDS = exports.CARE_TRAIT = exports.KEEPSAKES = exports.INCIDENTS = exports.GROWTH_STAGES = exports.PERSONALITIES = exports.INCIDENT_REWARD_GROWTH = exports.INCIDENT_REWARD_SPARKS = exports.CARE_GROWTH_COOLDOWN_MS = exports.INITIAL_INCIDENT_DELAY_MS = exports.MINUTE_MS = void 0;
+exports.isEquippable = exports.canPurchaseKeepsake = exports.scheduleIncidentAfterResolution = exports.settleTimedState = exports.clampPercent = exports.selectIncidentId = exports.getIncidentDelayMs = exports.utcDateKey = exports.getGrowthProgress = exports.getGrowthStage = exports.applyTraitAward = exports.getDominantPersonality = exports.isKeepsakeId = exports.isIncidentId = exports.isPersonalityId = exports.KEEPSAKE_BY_ID = exports.INCIDENT_BY_ID = exports.KEEPSAKE_IDS = exports.INCIDENT_IDS = exports.PERSONALITY_IDS = exports.CARE_TRAIT = exports.KEEPSAKES = exports.INCIDENTS = exports.GROWTH_STAGES = exports.PERSONALITIES = exports.INCIDENT_REWARD_GROWTH = exports.INCIDENT_REWARD_SPARKS = exports.CARE_GROWTH_COOLDOWN_MS = exports.INITIAL_INCIDENT_DELAY_MS = exports.isCharacterId = exports.DEFAULT_CHARACTER_NAMES = exports.CHARACTERS = exports.EGG_HATCH_MS = exports.EGG_CRACK_MS = exports.EGG_DURATION_MS = exports.MINUTE_MS = void 0;
+exports.eggPhase = eggPhase;
 exports.MINUTE_MS = 60000;
+exports.EGG_DURATION_MS = 60000; // 新领养默认 60 秒孵化
+exports.EGG_CRACK_MS = 50000; // 前 50 秒完好的蛋逐渐裂纹
+exports.EGG_HATCH_MS = 58000; // 最后段破壳动画
+exports.CHARACTERS = ['star', 'block'];
+exports.DEFAULT_CHARACTER_NAMES = { star: '星跃', block: '方跃' };
+var isCharacterId = function (value) {
+    return typeof value === 'string' && exports.CHARACTERS.includes(value);
+};
+exports.isCharacterId = isCharacterId;
 exports.INITIAL_INCIDENT_DELAY_MS = 2 * exports.MINUTE_MS;
 exports.CARE_GROWTH_COOLDOWN_MS = exports.MINUTE_MS;
 exports.INCIDENT_REWARD_SPARKS = 8;
@@ -191,7 +201,10 @@ exports.selectIncidentId = selectIncidentId;
 var clampPercent = function (value) { return Math.max(0, Math.min(100, value)); };
 exports.clampPercent = clampPercent;
 var settleTimedState = function (state, sampledNow) {
+    var _a;
     var now = Math.max(state.lastUpdated, sampledNow);
+    // 0.3.3 孵化计时（真实时间戳）：到点破壳，离开前台 / 锁屏 / 重启后一致
+    var hatchSettled = !state.hatched && state.egg !== null && state.egg !== undefined && now >= state.egg.startedAt + state.egg.durationMs;
     var rawMinutes = Math.max(0, (now - state.lastUpdated) / exports.MINUTE_MS);
     var elapsedMinutes = state.mode === 'cozy' ? Math.min(rawMinutes, 12 * 60) : rawMinutes;
     var pace = state.mode === 'cozy' ? 0.58 : 1;
@@ -224,6 +237,8 @@ var settleTimedState = function (state, sampledNow) {
         ageMinutes: state.ageMinutes + rawMinutes,
         activeIncident: activeIncident,
         nextIncidentAt: nextIncidentAt,
+        egg: hatchSettled ? null : ((_a = state.egg) !== null && _a !== void 0 ? _a : null),
+        hatched: hatchSettled ? true : state.hatched === true
     };
 };
 exports.settleTimedState = settleTimedState;
@@ -240,6 +255,19 @@ var canPurchaseKeepsake = function (sparks, owned, itemId) {
 exports.canPurchaseKeepsake = canPurchaseKeepsake;
 var isEquippable = function (owned, itemId, category) { return (owned.includes(itemId) && exports.KEEPSAKE_BY_ID[itemId].category === category); };
 exports.isEquippable = isEquippable;
+/** 蛋阶段判定（真实时间戳，离开前台 / 锁屏 / 重启后一致） */
+function eggPhase(egg, hatched, now) {
+    if (hatched || !egg)
+        return 'hatched';
+    var elapsed = Math.max(0, now - egg.startedAt);
+    if (elapsed >= egg.durationMs)
+        return 'hatched';
+    if (elapsed >= exports.EGG_HATCH_MS)
+        return 'hatch';
+    if (elapsed >= exports.EGG_CRACK_MS)
+        return 'crack';
+    return 'egg';
+}
 
 };
 
@@ -360,7 +388,12 @@ var validTimestamp = function (value, fallback, now, futureLimit) {
 var freshSnapshot = function (now) {
     if (now === void 0) { now = Date.now(); }
     return ({
-        petName: 'Mori',
+        petName: progression_1.DEFAULT_CHARACTER_NAMES.star,
+        character: 'star',
+        headphones: false,
+        egg: { startedAt: now, durationMs: progression_1.EGG_DURATION_MS },
+        hatched: false,
+        eggSoothedAt: null,
         needs: { hunger: 78, joy: 72, hygiene: 84, energy: 76, health: 92 },
         bond: 4,
         ageMinutes: 0,
@@ -456,12 +489,39 @@ var normalizeSnapshot = function (value, now) {
     var lastUpdated = validTimestamp(source.lastUpdated, now, now);
     var action = ACTIONS.includes(source.lastAction) ? source.lastAction : null;
     var reply = typeof source.lastReply === 'string' && source.lastReply.length <= 500 ? source.lastReply : null;
-    var petName = typeof source.petName === 'string' && source.petName.trim() ? source.petName.trim().slice(0, 30) : fresh.petName;
+    // 0.3.2 旧存档没有 character/headphones：默认星跃、关闭耳机（无损迁移）
+    var legacy = !(0, progression_1.isCharacterId)(source.character);
+    var character = legacy ? fresh.character : source.character;
+    var headphones = typeof source.headphones === 'boolean' ? source.headphones : fresh.headphones;
+    // 孵化迁移：完全没有 egg/hatched 字段的旧存档（0.3.2 / 早期 0.3.3）视作已孵化，保留进度
+    var hasEggFields = 'egg' in source || 'hatched' in source;
+    var legacyHatched = !hasEggFields;
+    var egg = legacyHatched || !isRecord(source.egg) || typeof source.egg.startedAt !== 'number'
+        ? null
+        : {
+            startedAt: validTimestamp(source.egg.startedAt, now, now, now + progression_1.EGG_DURATION_MS),
+            durationMs: progression_1.EGG_DURATION_MS,
+        };
+    var hatched = legacyHatched ? true : typeof source.hatched === 'boolean' ? source.hatched : egg === null;
+    var eggSoothedAt = typeof source.eggSoothedAt === 'number' && Number.isFinite(source.eggSoothedAt)
+        ? validTimestamp(source.eggSoothedAt, now, now, now + progression_1.EGG_DURATION_MS)
+        : null;
+    var rawName = typeof source.petName === 'string' && source.petName.trim() ? source.petName.trim().slice(0, 30) : fresh.petName;
+    // 已知系统默认名（点点 / Mori / 另一角色默认名）一律迁移为当前角色默认名；自定义名保留
+    var otherDefault = progression_1.DEFAULT_CHARACTER_NAMES[character === 'star' ? 'block' : 'star'];
+    var petName = rawName === '点点' || rawName === 'Mori' || rawName === otherDefault
+        ? progression_1.DEFAULT_CHARACTER_NAMES[character]
+        : rawName;
     var mode = MODES.includes(source.mode) ? source.mode : fresh.mode;
     var themeId = THEMES.includes(source.themeId) ? source.themeId : fresh.themeId;
     var personalityFocus = (0, progression_1.isPersonalityId)(source.personalityFocus) ? source.personalityFocus : fresh.personalityFocus;
     return {
         petName: petName,
+        character: character,
+        headphones: headphones,
+        egg: egg,
+        hatched: hatched,
+        eggSoothedAt: eggSoothedAt,
         needs: needs,
         bond: bond,
         ageMinutes: bounded(source.ageMinutes, 0, 0, 10000000),
@@ -746,7 +806,20 @@ exports.useGameStore = (0, zustand_1.create)()((0, middleware_1.persist)(functio
             _a.actionNonce = state.actionNonce + 1,
             _a.lastReply = equipped ? "".concat(item.name, " is now part of Mori\u2019s world.") : "".concat(item.name, " returned to the keepsake drawer."),
             _a;
-    }); }, openStory: function () { return set(function (state) { return ({ storyOpen: (0, stories_1.isStoryUnlocked)(state.storyIndex, state.bond) }); }); }, closeStory: function () { return set({ storyOpen: false }); }, setTheme: function (themeId) { return set({ themeId: themeId, lastReply: null }); }, setMode: function (mode) { return set(function (state) { return (__assign(__assign({}, (0, progression_1.settleTimedState)(state, Date.now())), { mode: mode })); }); }, exportSave: function () {
+    }); }, openStory: function () { return set(function (state) { return ({ storyOpen: (0, stories_1.isStoryUnlocked)(state.storyIndex, state.bond) }); }); }, closeStory: function () { return set({ storyOpen: false }); }, setTheme: function (themeId) { return set({ themeId: themeId, lastReply: null }); }, setMode: function (mode) { return set(function (state) { return (__assign(__assign({}, (0, progression_1.settleTimedState)(state, Date.now())), { mode: mode })); }); }, 
+    // 0.3.3 角色切换：仍在用默认名时跟随角色默认名（星跃/方跃），手动命名过则保留
+    setCharacter: function (character) { return set(function (state) {
+        if (!(0, progression_1.isCharacterId)(character) || character === state.character)
+            return state;
+        var petName = state.petName === progression_1.DEFAULT_CHARACTER_NAMES[state.character] ? progression_1.DEFAULT_CHARACTER_NAMES[character] : state.petName;
+        return __assign(__assign({}, (0, progression_1.settleTimedState)(state, Date.now())), { character: character, petName: petName, lastAction: 'workshop', actionNonce: state.actionNonce + 1, lastReply: null });
+    }); }, 
+    // 蛋阶段轻触安抚：只记录时间戳与反馈，不加速孵化、不影响成长
+    sootheEgg: function () { return set(function (state) {
+        if (state.hatched || !state.egg)
+            return state;
+        return __assign(__assign({}, state), { eggSoothedAt: Date.now(), actionNonce: state.actionNonce + 1, lastAction: null, lastReply: '蛋轻轻晃了晃，好像在回应你。' });
+    }); }, setHeadphones: function (on) { return set(function (state) { return (state.headphones === on === true ? state : __assign(__assign({}, state), { headphones: on === true, lastAction: 'workshop', actionNonce: state.actionNonce + 1, lastReply: null })); }); }, exportSave: function () {
         var now = Date.now();
         var snapshot = (0, save_1.normalizeSnapshot)(get(), now);
         return {
@@ -771,11 +844,11 @@ var game = require('store').useGameStore;
 var save = require('save');
 var progression = require('progression');
 var stories = require('stories');
-var allowed = ['tick','care','completeActivity','chooseStory','purchaseKeepsake','toggleKeepsake','openStory','closeStory','setTheme','setMode','exportSave','importSave','reset'];
+var allowed = ['tick','care','completeActivity','chooseStory','purchaseKeepsake','toggleKeepsake','openStory','closeStory','setTheme','setMode','setCharacter','setHeadphones','sootheEgg','exportSave','importSave','reset'];
 function initGame(saved, legacy) {
   var snapshot = saved ? save.normalizeSnapshot(JSON.parse(saved)) : save.freshSnapshot();
   if (!saved) {
-    snapshot.petName = '点点';
+    snapshot.petName = '星跃';
     snapshot.themeId = 'moss';
     snapshot.storyOpen = false;
     if (legacy) {
@@ -800,9 +873,9 @@ function dispatchGame(action, argumentsJson) {
   if (action === 'care' && !progression.CARE_TRAIT[args[0]]) throw new Error('照料方式错误');
   if (action === 'setMode' && ['cozy','classic'].indexOf(args[0]) < 0) throw new Error('模式错误');
   if (action === 'setTheme' && ['sakura','cyber','moss','moon'].indexOf(args[0]) < 0) throw new Error('主题错误');
+  if (action === 'setCharacter' && ['star','block'].indexOf(args[0]) < 0) throw new Error('角色错误');
   if (action === 'completeActivity' && ['star-catch','memory-flip'].indexOf(args[0]) < 0) throw new Error('游戏类型错误');
   if (action === 'chooseStory' && !stories.isStoryUnlocked(state.storyIndex, state.bond)) throw new Error('这段回忆尚未解锁');
   var result = game.getState()[action].apply(null, args);
-  if (action === "reset") game.setState({petName:"点点",storyOpen:false});
   return JSON.stringify({ snapshot: game.getState(), result: result === undefined ? null : result });
 }
