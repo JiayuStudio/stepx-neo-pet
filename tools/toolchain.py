@@ -19,8 +19,24 @@ def sdk_tool(directory, name):
 
 def java_home():
     configured = os.environ.get('JAVA_HOME')
-    if configured:
+    if configured and (Path(configured) / 'bin' / 'javac').is_file():
         result = Path(configured)
+    elif (ROOT.parent / '.toolchains' / 'environment.json').is_file():
+        # 云端 setup:native 会把免 root 安装的 JDK 路径写在这里
+        import json
+        try:
+            candidate = json.loads((ROOT.parent / '.toolchains' / 'environment.json').read_text()).get('JAVA_HOME')
+        except Exception:
+            candidate = None
+        if candidate and (Path(candidate) / 'bin' / 'javac').is_file():
+            result = Path(candidate)
+        elif sys.platform == 'darwin' and Path('/usr/libexec/java_home').exists():
+            result = Path(subprocess.check_output(['/usr/libexec/java_home', '-v', '17'], text=True).strip())
+        else:
+            compiler = shutil.which('javac')
+            if not compiler:
+                raise SystemExit('Install JDK 17 and set JAVA_HOME')
+            result = Path(compiler).resolve().parent.parent
     elif sys.platform == 'darwin' and Path('/usr/libexec/java_home').exists():
         result = Path(subprocess.check_output(['/usr/libexec/java_home', '-v', '17'], text=True).strip())
     else:

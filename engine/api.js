@@ -31,7 +31,7 @@ function dispatchGame(action, argumentsJson) {
   if (action === 'care' && !progression.CARE_TRAIT[args[0]]) throw new Error('照料方式错误');
   if (action === 'setMode' && ['cozy','classic'].indexOf(args[0]) < 0) throw new Error('模式错误');
   if (action === 'setTheme' && ['sakura','cyber','moss','moon'].indexOf(args[0]) < 0) throw new Error('主题错误');
-  if (action === 'setCharacter' && ['star','block'].indexOf(args[0]) < 0) throw new Error('角色错误');
+  if (action === 'setCharacter' && ['star','block','sprout','bunny','fox','otter','owl','drake'].indexOf(args[0]) < 0) throw new Error('角色错误');
   if (action === 'completeActivity' && ['star-catch','memory-flip'].indexOf(args[0]) < 0) throw new Error('游戏类型错误');
   if (action === 'chooseStory' && !stories.isStoryUnlocked(state.storyIndex, state.bond)) throw new Error('这段回忆尚未解锁');
   var result = game.getState()[action].apply(null, args);

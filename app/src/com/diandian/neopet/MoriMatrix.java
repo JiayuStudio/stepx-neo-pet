@@ -23,14 +23,19 @@ final class MoriMatrix {
             if(action.equals("feed"))return "eat";
             if(action.equals("rest"))return "sleep";
             if(action.equals("cuddle")||action.equals("story"))return "pet";
-            if(action.equals("wash")||action.equals("play")||action.equals("explore")||action.equals("activity"))return "play";
+            // 0.3.6：洗澡 / 探索独立成场景，不再全部塞进 play
+            if(action.equals("wash"))return "wash";
+            if(action.equals("explore"))return "walk";
+            if(action.equals("play")||action.equals("activity"))return "play";
         }
         JSONObject needs=pet.optJSONObject("needs");
         return MoriAppearance.scene(needs.optDouble("health"),needs.optDouble("energy"),needs.optDouble("hunger"),needs.optDouble("joy"),needs.optDouble("hygiene"));
     }
+    private static final String[] CHARACTERS={"star","block","sprout","bunny","fox","otter","owl","drake"};
     String character(JSONObject pet){
         String value=pet.optString("character","star");
-        return value.equals("block")?"block":"star";
+        for(String id:CHARACTERS)if(id.equals(value))return id;
+        return "star";
     }
     String artKey(JSONObject pet,String scene){
         // 蛋阶段键：<scene>/<character>（与养成维度无关）

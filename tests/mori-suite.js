@@ -95,4 +95,33 @@ check(state.eggSoothedAt===now&&state.hatched===false&&state.lastReply!==null,'s
 boot({egg:null,hatched:true});var beforeSoothe=state.actionNonce;act('sootheEgg');
 check(state.actionNonce===beforeSoothe,'soothe on hatched is a no-op');
 check(throws(function(){act('sootheEgg',['x']);})===false,'sootheEgg takes no args');
+/* ---- 0.3.6 八角色：切换 / 迁移 / 备份往返 / 不重置进度 ---- */
+var NEW_IDS=['sprout','bunny','fox','otter','owl','drake'];
+var NAMES={sprout:'芽灵',bunny:'绒兔',fox:'焰狐',otter:'泡獭',owl:'眠鸮',drake:'角龙'};
+NEW_IDS.forEach(function(id){
+  boot();
+  act('setCharacter',[id]);
+  check(state.character===id&&state.petName===NAMES[id],'new character '+id+' switches and renames');
+});
+boot({petName:'阿橘'});
+NEW_IDS.forEach(function(id){act('setCharacter',[id]);check(state.petName==='阿橘','custom name survives switch to '+id);});
+NEW_IDS.forEach(function(id){
+  boot({character:'star'});act('setCharacter',[id]);
+  var backup=act('exportSave').result.contents;
+  boot();
+  check(act('importSave',[backup]).result.ok&&state.character===id,'backup round trip keeps '+id);
+});
+boot({growthPoints:150,personalityFocus:'playful',equippedWearable:'moon-charm',egg:{startedAt:now,durationMs:60000},hatched:false});
+var growth=state.growthPoints,focus=state.personalityFocus,wearable=state.equippedWearable,eggRef2=state.egg;
+act('setCharacter',['drake']);
+check(state.growthPoints===growth&&state.personalityFocus===focus&&state.equippedWearable===wearable,'switch keeps growth/personality/wearable');
+check(state.egg===eggRef2&&state.hatched===false,'switch does not reset hatching for new characters');
+var unknown=save.freshSnapshot(now);
+unknown.character='dragon';
+unknown.needs={hunger:50,joy:50,hygiene:50,energy:50,health:77};
+initGame(JSON.stringify(unknown),'');
+check(state.character==='star','unknown character migrates to star');
+check(state.needs.health===77,'legacy migration never lowers health');
+check(throws(function(){act('setCharacter',['pikachu']);}),'non-original character id rejected');
+
 function testResult(){return JSON.stringify({passed:checks,engine:'Rhino/headless Mori',upstreamModules:6});}

@@ -17,8 +17,10 @@ export const EGG_DURATION_MS = 60_000      // 新领养默认 60 秒孵化
 export const EGG_CRACK_MS = 50_000         // 前 50 秒完好的蛋逐渐裂纹
 export const EGG_HATCH_MS = 58_000         // 最后段破壳动画
 export type EggPhase = 'egg' | 'crack' | 'hatch' | 'hatched'
-export const CHARACTERS: readonly CharacterId[] = ['star', 'block']
-export const DEFAULT_CHARACTER_NAMES: Record<CharacterId, string> = { star: '星跃', block: '方跃' }
+export const CHARACTERS: readonly CharacterId[] = ['star', 'block', 'sprout', 'bunny', 'fox', 'otter', 'owl', 'drake']
+export const DEFAULT_CHARACTER_NAMES: Record<CharacterId, string> = {
+  star: '星跃', block: '方跃', sprout: '芽灵', bunny: '绒兔', fox: '焰狐', otter: '泡獭', owl: '眠鸮', drake: '角龙',
+}
 export const isCharacterId = (value: unknown): value is CharacterId =>
   typeof value === 'string' && (CHARACTERS as readonly string[]).includes(value)
 export const INITIAL_INCIDENT_DELAY_MS = 2 * MINUTE_MS

@@ -62,13 +62,21 @@ body, button, textarea, h1, h2, h3, h4, .brand, .eyebrow { font-family: system-u
 }
 
 h1 em, h2 em { -webkit-text-stroke:0; text-shadow:none; font-weight:750; }
+
+/* 0.3.5 检查更新入口（背屏陪伴栏内） */
+.neo-update{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:10px;border-top:1px solid var(--line);padding-top:10px}
+.neo-update-meta{flex:1 1 220px;display:grid;gap:2px}
+.neo-update-newer,.neo-update-error{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.neo-update button{min-height:44px;border:2px solid var(--ink);border-radius:12px;background:transparent;color:var(--ink);padding:8px 14px;font-weight:700;cursor:pointer}
+.neo-update button:disabled{opacity:.55;cursor:default}
+.neo-update-fallback{background:transparent;opacity:.75}
 .reply-toast { pointer-events:none; animation: neo-reply 6s both; }
 @keyframes neo-reply { 0%,85% { opacity:1; visibility:visible; } 100% { opacity:0; visibility:hidden; } }
 
 /* 0.3.3 角色与耳机选择 */
 .character-picker{margin-top:14px;display:flex;flex-direction:column;gap:8px}
 .character-picker-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.62}
-.character-options{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.character-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px}
 .character-option{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border:2px solid var(--ink);border-radius:14px;background:transparent;color:inherit;min-height:44px;cursor:pointer}
 .character-option b{font-size:14px}
 .character-option small{font-size:11px;opacity:.66}
@@ -82,3 +90,419 @@ h1 em, h2 em { -webkit-text-stroke:0; text-shadow:none; font-weight:750; }
 .matrix-preview-tag{font-size:12px;letter-spacing:.04em;opacity:.72;text-align:center}
 .matrix-preview-hint{font-size:11px;opacity:.5}
 .matrix-scene-secondary{opacity:.92}
+
+/* 0.3.6 角色点阵缩略：选择卡内 8 种外观直接可辨 */
+.pet-dot{display:block;background:var(--screen);border-radius:6px;image-rendering:pixelated;margin-bottom:4px}
+.character-option{align-items:center;text-align:center}
+.character-option b{font-size:13px}
+.character-option small{font-size:10px;line-height:1.25}
+
+/* 0.3.6 主页内嵌点阵视图：按屏框尺寸自适应，不被 3D 屏框裁切 */
+.scene-wrap .matrix-preview{margin:0;height:100%;width:100%;justify-content:center;gap:0}
+.scene-wrap .matrix-preview-frame{width:auto;height:100%;aspect-ratio:17/23;max-height:100%;padding:2px;border:0;border-radius:4px;box-shadow:none;background:transparent}
+.scene-wrap .matrix-preview-canvas{max-height:100%;max-width:100%}
+.scene-wrap .matrix-preview-tag,.scene-wrap .matrix-preview-hint{display:none}
+
+/* =============================================================================
+ * 0.3.6「马克笔描边」纸感风格
+ * 参考研究所主页的视觉语言（不复制其角色）：暖白纸张、2.5~3px 近墨描边、
+ * 略不规则圆角、3~5px 硬阴影、马克笔黄标题底、淡斜线填色、便签贴纸感。
+ * 这些规则未放进 @layer，因此优先于 styles.css 的分层规则；
+ * 内联只有主题变量（已改为同一套马卡龙色板）。
+ * ========================================================================== */
+:root {
+  --marker-ink: #242321;
+  --marker-paper: #f7f2e5;
+  --marker-paper-deep: #ebe2cf;
+  --marker-blue: #79cce7;
+  --marker-pink: #f3a2b1;
+  --marker-yellow: #f7d65e;
+  --marker-green: #b6d59c;
+  --marker-shadow: 4px 4px 0 var(--marker-ink);
+  --marker-shadow-lg: 8px 8px 0 var(--marker-ink);
+  --marker-radius: 16px 20px 14px 22px;
+  --marker-radius-sm: 11px 14px 10px 15px;
+}
+
+/* 纸张 + 淡斜线填色 */
+.app {
+  --paper: var(--marker-paper);
+  --paper-deep: var(--marker-paper-deep);
+  --line: var(--marker-ink);
+  color: var(--marker-ink);
+  background:
+    repeating-linear-gradient(-45deg, rgba(36, 35, 33, .045) 0 2px, transparent 2px 11px),
+    var(--marker-paper);
+}
+.app::before { opacity: .10; }
+
+/* 标题：马克笔黄色底 */
+h1 em, h2 em, h3 em {
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+  background: linear-gradient(transparent 56%, var(--marker-yellow) 56%, var(--marker-yellow) 94%, transparent 94%);
+  padding: 0 .06em;
+  font-weight: 800;
+}
+.eyebrow { color: var(--marker-ink); opacity: .72; letter-spacing: .12em; }
+
+/* 顶部导航 */
+.topbar {
+  background: var(--marker-paper);
+  border-bottom: 3px solid var(--marker-ink);
+}
+.brand-mark {
+  border: 3px solid var(--marker-ink);
+  border-radius: 14px 18px 13px 17px;
+  background: var(--marker-yellow);
+  box-shadow: 3px 3px 0 var(--marker-ink);
+  font-weight: 800;
+}
+.text-button, .icon-button {
+  border: 3px solid var(--marker-ink);
+  border-radius: var(--marker-radius-sm);
+  background: var(--marker-paper);
+  box-shadow: 3px 3px 0 var(--marker-ink);
+  font-weight: 800;
+}
+.text-button:active, .icon-button:active,
+.care-actions button:active, .character-option:active,
+.neo-companion button:active, .neo-update button:active,
+.vault-actions button:active, .keepsake-action:active,
+.return-brief-actions button:active, .theme-card:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--marker-ink);
+}
+.save-status i { background: var(--marker-green); box-shadow: 0 0 0 3px rgba(182, 213, 156, .55); }
+
+/* 锚点导航：黄色便签条 */
+.pocket-nav {
+  background: var(--marker-yellow);
+  border: 3px solid var(--marker-ink);
+  border-radius: var(--marker-radius);
+  box-shadow: var(--marker-shadow);
+}
+.pocket-nav::before { background: var(--marker-yellow); }
+.pocket-nav a { border-radius: 10px; }
+.pocket-nav a[aria-current="true"], .pocket-nav a:target { background: rgba(255, 255, 255, .5); }
+
+/* 背屏陪伴栏 / 检查更新 */
+.neo-companion {
+  background: var(--marker-paper);
+  border: 3px solid var(--marker-ink);
+  border-radius: var(--marker-radius);
+  box-shadow: var(--marker-shadow-lg);
+}
+.neo-companion button {
+  border: 3px solid var(--marker-ink);
+  border-radius: var(--marker-radius-sm);
+  background: var(--marker-paper);
+  box-shadow: 3px 3px 0 var(--marker-ink);
+  font-weight: 800;
+}
+.neo-companion .neo-toggle { background: var(--marker-green); }
+.neo-update { border-top: 2px dashed var(--marker-ink); }
+.neo-update button {
+  border: 3px solid var(--marker-ink);
+  border-radius: var(--marker-radius-sm);
+  background: var(--marker-paper);
+  box-shadow: 3px 3px 0 var(--marker-ink);
+}
+.neo-update-fallback { background: var(--marker-blue); opacity: 1; }
+.neo-update-newer { background: rgba(182, 213, 156, .35); border: 2px dashed var(--marker-ink); border-radius: var(--marker-radius-sm); padding: 8px; }
+.neo-update-error { background: rgba(243, 162, 177, .38); border: 2px dashed var(--marker-ink); border-radius: var(--marker-radius-sm); padding: 8px; }
+.neo-update-notice { background: var(--marker-yellow); border-radius: 8px; padding: 2px 8px; }
+
+/* 宠物舞台外框：贴纸相机 */
+.device {
+  background: var(--shell);
+  border: 3px solid var(--marker-ink);
+  box-shadow: 12px 14px 0 var(--marker-ink);
+}
+.device-loop {
+  background: var(--shell);
+  border: 3px solid var(--marker-ink);
+}
+.device-label { color: var(--marker-ink); }
+.device-shadow { background: var(--marker-ink); opacity: .18; }
+.screen-bezel {
+  border: 3px solid var(--marker-ink);
+  background: var(--marker-ink);
+  box-shadow: inset 0 0 0 5px color-mix(in srgb, var(--shell-dark) 65%, var(--marker-ink));
+}
+.screen-meta { color: var(--marker-paper); }
+.hardware-controls button, .music-button, .scene-play-button {
+  border: 3px solid var(--marker-ink);
+  background: var(--marker-yellow);
+  box-shadow: 3px 3px 0 var(--marker-ink);
+  border-radius: 50%;
+  color: var(--marker-ink);
+}
+.scene-play-button { border-radius: 999px; }
+.reply-toast, .screen-caption { color: var(--marker-paper); }
+
+/* 8 宠物选择卡 */
+.character-options { gap: 10px; }
+.character-option {
+  border: 3px solid var(--marker-ink);
+  border-radius: var(--marker-radius);
+  background: var(--marker-paper);
+  box-shadow: var(--marker-shadow);
+  min-height: 84px;
+  transition: transform .14s ease, box-shadow .14s ease, background .14s ease;
+}
+.character-option:hover { transform: translate(-1px, -1px) rotate(-.6deg); box-shadow: 5px 5px 0 var(--marker-ink); }
+.character-option.active {
+  background: var(--marker-yellow);
+  border: 3px solid var(--marker-ink);
+  box-shadow: 5px 5px 0 var(--marker-ink);
+  transform: rotate(-1.2deg);
+}
+.character-option b { font-weight: 800; }
+.pet-dot { border: 2px solid var(--marker-ink); border-radius: 7px; image-rendering: pixelated; }
+
+/* 照料面板 / 模式 / 需求条 / 动作按钮 */
+.care-panel, .identity-card, .incident-card, .workshop-card, .growth-dashboard,
+.memory-board, .profile-card, .panel-card {
+  border: 3px solid var(--marker-ink);
+  border-radius: var(--marker-radius);
+  background: var(--marker-paper);
+  box-shadow: var(--marker-shadow-lg);
+}
+.mode-switch {
+  border: 3px solid var(--marker-ink);
+  border-radius: 999px;
+  background: var(--marker-paper-deep);
+  padding: 4px;
+}
+.mode-switch button { border-radius: 999px; font-weight: 800; }
+.mode-switch button.active { background: var(--marker-ink); color: var(--marker-paper); }
+
+.gauge-track {
+  height: 10px;
+  border: 2.5px solid var(--marker-ink);
+  border-radius: 999px;
+  background: var(--marker-paper-deep);
+}
+.gauge-fill { background: var(--marker-blue); border-radius: 999px; }
+.gauges .gauge-row:nth-child(1) .gauge-fill { background: var(--marker-yellow); }
+.gauges .gauge-row:nth-child(2) .gauge-fill { background: var(--marker-pink); }
+.gauges .gauge-row:nth-child(3) .gauge-fill { background: var(--marker-blue); }
+.gauges .gauge-row:nth-child(4) .gauge-fill { background: var(--marker-green); }
+.gauges .gauge-row:nth-child(5) .gauge-fill { background: var(--marker-pink); }
+.gauge-value, .gauge-label { font-weight: 850; }
+
+.care-actions button {
+  border: 3px solid var(--marker-ink);
+  border-radius: var(--marker-radius-sm);
+  background: var(--marker-paper);
+  box-shadow: var(--marker-shadow);
+  color: var(--marker-ink);
+  font-weight: 700;
+}
+.care-actions button:nth-child(6n + 1) { background: color-mix(in srgb, var(--marker-yellow) 62%, var(--marker-paper)); }
+.care-actions button:nth-child(6n + 2) { background: color-mix(in srgb, var(--marker-pink) 45%, var(--marker-paper)); }
+.care-actions button:nth-child(6n + 3) { background: color-mix(in srgb, var(--marker-blue) 45%, var(--marker-paper)); }
+.care-actions button:nth-child(6n + 4) { background: color-mix(in srgb, var(--marker-green) 48%, var(--marker-paper)); }
+.care-actions button:nth-child(6n + 5) { background: color-mix(in srgb, var(--marker-pink) 30%, var(--marker-paper)); }
+.care-actions button:nth-child(6n + 6) { background: color-mix(in srgb, var(--marker-yellow) 38%, var(--marker-paper)); }
+.care-actions button:hover { transform: translateY(-2px); box-shadow: 5px 6px 0 var(--marker-ink); }
+.care-actions button.rescue-action { border: 3px solid var(--marker-ink); background: var(--marker-yellow); box-shadow: var(--marker-shadow); }
+.care-actions small { opacity: .7; }
+
+/* 成长 / 印记 / 商店 */
+.growth-section, .theme-section, .vault-section { border-top: 3px solid var(--marker-ink); }
+.growth-track, .trait-track, .bond-line {
+  border: 2.5px solid var(--marker-ink);
+  border-radius: 999px;
+  background: var(--marker-paper-deep);
+}
+.keepsake-grid { gap: 12px; }
+.keepsake-card {
+  border: 3px solid var(--marker-ink);
+  border-radius: var(--marker-radius);
+  background: var(--marker-paper);
+  box-shadow: var(--marker-shadow);
+}
+.keepsake-card.equipped { border: 3px solid var(--marker-ink); background: color-mix(in srgb, var(--marker-green) 55%, var(--marker-paper)); box-shadow: 5px 5px 0 var(--marker-ink); }
+.keepsake-action, .equip-button {
+  border: 3px solid var(--marker-ink);
+  border-radius: var(--marker-radius-sm);
+  background: var(--marker-yellow);
+  box-shadow: 3px 3px 0 var(--marker-ink);
+  min-height: 44px;
+  font-weight: 800;
+}
+.incident-card { background: color-mix(in srgb, var(--marker-pink) 30%, var(--marker-paper)); }
+.incident-card a { border: 3px solid var(--marker-ink); background: var(--marker-ink); color: var(--marker-paper); border-radius: var(--marker-radius-sm); min-height: 44px; }
+.workshop-note, .migration-note { border-left: 4px solid var(--marker-yellow); padding-left: 10px; }
+
+/* 小游戏：深色区改回纸色卡片 */
+.activity-section {
+  background: var(--marker-paper);
+  color: var(--marker-ink);
+  border-top: 3px solid var(--marker-ink);
+}
+.activity-card {
+  border: 3px solid var(--marker-ink);
+  border-radius: var(--marker-radius);
+  background: color-mix(in srgb, var(--marker-blue) 30%, var(--marker-paper));
+  box-shadow: var(--marker-shadow);
+  color: var(--marker-ink);
+  min-height: 190px;
+}
+.activity-card:nth-child(2n) { background: color-mix(in srgb, var(--marker-pink) 30%, var(--marker-paper)); }
+.activity-card:hover { box-shadow: 6px 6px 0 var(--marker-ink); transform: translate(-2px, -2px) rotate(-.4deg); }
+.activity-heading h2, .growth-heading h2, .vault-heading h2 { color: var(--marker-ink); }
+.game-dialog, .game-hud { color: var(--marker-ink); }
+.game-hud {
+  border: 3px solid var(--marker-ink);
+  border-radius: var(--marker-radius-sm);
+  background: var(--marker-paper);
+  box-shadow: var(--marker-shadow);
+}
+.memory-card {
+  border: 3px solid var(--marker-ink);
+  border-radius: var(--marker-radius-sm);
+  background: var(--marker-paper);
+  box-shadow: 3px 3px 0 var(--marker-ink);
+}
+.catch-star { color: var(--marker-yellow); }
+
+/* 主题卡 */
+.theme-card {
+  border: 3px solid var(--marker-ink);
+  border-radius: var(--marker-radius);
+  background: var(--marker-paper);
+  box-shadow: var(--marker-shadow);
+}
+.theme-card.selected { border: 3px solid var(--marker-ink); background: var(--marker-yellow); box-shadow: 5px 5px 0 var(--marker-ink); }
+.mini-device { border: 3px solid var(--marker-ink); }
+
+/* 存档 */
+.vault-card {
+  border: 3px solid var(--marker-ink);
+  border-radius: var(--marker-radius);
+  background: var(--marker-paper);
+  box-shadow: var(--marker-shadow);
+}
+.vault-actions button, .vault-primary, .vault-restore {
+  border: 3px solid var(--marker-ink);
+  border-radius: var(--marker-radius-sm);
+  background: var(--marker-paper);
+  box-shadow: 3px 3px 0 var(--marker-ink);
+  min-height: 44px;
+  font-weight: 800;
+}
+.vault-primary { background: var(--marker-green); }
+.vault-paste, .vault-file { border: 2px solid var(--marker-ink); border-radius: var(--marker-radius-sm); background: color-mix(in srgb, var(--marker-blue) 18%, var(--marker-paper)); }
+
+/* 页脚 */
+footer { background: var(--marker-yellow); border-top: 3px solid var(--marker-ink); color: var(--marker-ink); }
+footer button { border-bottom: 2px solid var(--marker-ink); font-weight: 800; }
+
+/* 弹窗 */
+.story-overlay, .game-overlay, .tutorial-overlay, .install-overlay {
+  background: rgba(36, 35, 33, .55);
+  backdrop-filter: blur(3px);
+}
+.story-dialog, .game-dialog, .tutorial-dialog, .install-dialog {
+  border: 3px solid var(--marker-ink);
+  border-radius: var(--marker-radius);
+  background: var(--marker-paper);
+  box-shadow: 10px 10px 0 var(--marker-ink);
+  color: var(--marker-ink);
+}
+.dialog-close {
+  border: 3px solid var(--marker-ink);
+  background: var(--marker-pink);
+  box-shadow: 3px 3px 0 var(--marker-ink);
+  color: var(--marker-ink);
+  min-width: 44px;
+  min-height: 44px;
+}
+.story-choices button, .tutorial-nav button {
+  border: 3px solid var(--marker-ink);
+  border-radius: var(--marker-radius-sm);
+  background: var(--marker-paper);
+  box-shadow: 3px 3px 0 var(--marker-ink);
+  min-height: 44px;
+  font-weight: 700;
+}
+.story-choices button:hover, .tutorial-nav button:hover { background: var(--marker-yellow); }
+.tutorial-tip { border: 3px solid var(--marker-ink); border-radius: var(--marker-radius-sm); background: var(--marker-yellow); box-shadow: var(--marker-shadow); }
+.tutorial-number, .tutorial-dots i { background: var(--marker-ink); }
+
+/* 焦点 / 禁用 / 选中 —— 所有控件统一 */
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible {
+  outline: 3px solid var(--marker-blue);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px var(--marker-paper);
+}
+button:disabled, [aria-disabled="true"] {
+  background: repeating-linear-gradient(-45deg, rgba(36, 35, 33, .10) 0 3px, transparent 3px 9px), var(--marker-paper-deep) !important;
+  color: rgba(36, 35, 33, .58) !important;
+  border-color: rgba(36, 35, 33, .45) !important;
+  box-shadow: 2px 2px 0 rgba(36, 35, 33, .3) !important;
+  cursor: not-allowed;
+}
+
+/* 窄屏：342/390 不横溢，触控 ≥44px */
+@media (max-width: 600px) {
+  .pocket-nav { border-radius: 14px; box-shadow: 3px 3px 0 var(--marker-ink); }
+  .pocket-nav a { font-size: 12px; padding: 8px 1px; min-height: 44px; }
+  .neo-companion { border-radius: 14px; box-shadow: 5px 5px 0 var(--marker-ink); }
+  .care-actions button { min-height: 64px; }
+  .character-option { min-height: 78px; }
+  .topbar { border-bottom-width: 3px; }
+}
+@media (max-width: 380px) {
+  .character-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pocket-nav { gap: 2px; padding: 6px; }
+  .pocket-nav a { font-size: 11.5px; }
+  .care-actions { grid-template-columns: 1fr 1fr; }
+}
+
+/* 0.3.6 补充：区块底色统一纸感（原先用 --screen 混出灰底） */
+.growth-section { background: color-mix(in srgb, var(--marker-green) 16%, var(--marker-paper)); }
+.activity-section { background: color-mix(in srgb, var(--marker-blue) 14%, var(--marker-paper)); }
+.theme-section { background: color-mix(in srgb, var(--marker-pink) 14%, var(--marker-paper)); }
+.vault-section { background: color-mix(in srgb, var(--marker-yellow) 16%, var(--marker-paper)); }
+.growth-section, .activity-section, .theme-section, .vault-section,
+.growth-section h1, .growth-section h2, .growth-section h3, .growth-section p, .growth-section small,
+.activity-section h1, .activity-section h2, .activity-section h3, .activity-section p, .activity-section small,
+.theme-section h1, .theme-section h2, .theme-section h3, .theme-section p, .theme-section small,
+.vault-section h1, .vault-section h2, .vault-section h3, .vault-section p, .vault-section small,
+.activity-card, .activity-card * { color: var(--marker-ink); }
+.activity-card { border-color: var(--marker-ink); }
+
+/* 深色实心按钮统一改为黄色便签按钮 */
+.story-button, .panel-heading button, .activity-card button, .growth-heading button,
+.vault-heading button, .theme-copy button, .identity-card button, .workshop-card button {
+  border: 3px solid var(--marker-ink);
+  border-radius: var(--marker-radius-sm);
+  background: var(--marker-yellow);
+  color: var(--marker-ink);
+  box-shadow: 3px 3px 0 var(--marker-ink);
+  min-height: 44px;
+  font-weight: 800;
+}
+.story-button:disabled { background: var(--marker-paper-deep); }
+
+/* 亲密度 / 印记等细进度条统一描边 */
+.bond-line, .bond-track, .density-line, .growth-track, .trait-track { border: 2px solid var(--marker-ink); }
+.gauge-glyph { color: var(--marker-ink); }
+
+/* 小游戏内部装饰块 */
+.activity-art { border: 3px solid var(--marker-ink); border-radius: var(--marker-radius-sm); background: var(--marker-paper); }
+
+/* 主题卡迷你设备与色块 */
+.mini-device { box-shadow: 3px 3px 0 var(--marker-ink); }
+.mini-device i { border: 2px solid var(--marker-ink); }
+
+/* 0.3.6 修正：em 高亮文字用墨色（避免浅色字压在黄底上看不清） */
+h1 em, h2 em, h3 em, .section-lead h2 em { color: var(--marker-ink); }
+
+/* 页脚在 342/390 下换行而不是截断 */
+footer { flex-wrap: wrap; gap: 8px 16px; }
+footer span { min-width: 0; }

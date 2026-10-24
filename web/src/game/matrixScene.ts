@@ -9,9 +9,9 @@ const SCENE_BY_ACTION: Record<string, Scene> = {
   rest: 'sleep',
   cuddle: 'pet',
   story: 'pet',
-  wash: 'play',
+  wash: 'wash',
   play: 'play',
-  explore: 'play',
+  explore: 'walk',
   activity: 'play',
 }
 
@@ -21,10 +21,12 @@ export interface ActionTracker {
   actionAt: number
 }
 
-/** 与 MoriMatrix.scene 一致：蛋阶段 → 照料 6 秒窗口 → 需求状态 */
+/** 与 MoriMatrix.scene 一致：蛋阶段 → 死亡 → 照料 6 秒窗口 → 需求状态 */
 export function selectScene(snapshot: GameSnapshot, now: number, tracker: ActionTracker): Scene {
   const phase = eggPhase(snapshot.egg, snapshot.hatched, now)
   if (phase === 'egg' || phase === 'crack' || phase === 'hatch') return phase
+  // 死亡按既有 health 零值显示（不新增离线必死、不删档）；恢复沿用原照料规则
+  if (snapshot.needs.health <= 0) return 'dead'
   // Track even null actions so the first real care action opens its window.
   if (snapshot.actionNonce !== tracker.lastNonce) {
     if (tracker.lastNonce >= 0) tracker.actionAt = now
@@ -34,9 +36,10 @@ export function selectScene(snapshot: GameSnapshot, now: number, tracker: Action
     return SCENE_BY_ACTION[snapshot.lastAction]
   }
   const { health, energy, hunger, joy, hygiene } = snapshot.needs
-  if (health < 30) return 'hungry'
+  if (health < 30 || hygiene < 22) return 'sick'
+  if (hunger < 28) return 'hungry'
+  if (joy < 28) return 'unhappy'
   if (energy < 24) return 'sleep'
-  if (hunger < 28 || joy < 28 || hygiene < 22) return 'hungry'
   return (health + energy + hunger + joy + hygiene) / 5 > 64 ? 'happy' : 'idle'
 }
 

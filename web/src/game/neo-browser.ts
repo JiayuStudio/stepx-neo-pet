@@ -18,6 +18,8 @@
  * ========================================================================== */
 
 import engineSource from '../engine/mori-engine-source'
+import { checkUpdateFromGitHub, isTrustedReleaseUrl } from './updatePolicy'
+import { WEB_APP_VERSION } from './version'
 
 /** 与 store.ts 中 Window.NeoNative 声明一致的最小形状（这里不重复全局声明） */
 interface NeoNativeLike {
@@ -31,6 +33,10 @@ interface NeoNativeLike {
  *  布局据此区分"原生已处理 insets"与"浏览器预览"，不能只看接口是否存在。 */
 interface BrowserPreviewBridge extends NeoNativeLike {
   browserPreview: true
+  /** 0.3.5：浏览器预览用同一套 TS 策略直连公开 GitHub API 检查更新；
+   *  requestId 由页面每次检查生成，结果经 __neoUpdateResult(requestId, json) 带回 */
+  checkUpdate(requestId: string): string
+  openExternal(url: string): void
 }
 
 /** 浏览器预览存档（与真机存档分开，互不覆盖） */
@@ -172,7 +178,25 @@ export function installBrowserNeoNative(): boolean {
         return JSON.stringify({ error: '操作失败，请重试' })
       }
     },
-    companion: () => JSON.stringify({ running: false, preview: true, status: note, version: '0.3.4-preview' }),
+    // 版本由 WEB_APP_VERSION 派生（预览版加 -preview 标注），不再硬编码
+    companion: () => JSON.stringify({ running: false, preview: true, status: note, version: `${WEB_APP_VERSION}-preview` }),
+    // 检查更新：真实请求公开 API 并用同一套来源 / 版本校验；检查中去重复用同一请求。
+    // 发起时捕获该次的全局回调（闭包）：之后页面换装新回调，旧结果也只投递给这次检查。
+    checkUpdate: (requestId: string) => {
+      const deliver = window.__neoUpdateResult
+      void checkUpdateFromGitHub(WEB_APP_VERSION).then((result) => {
+        deliver?.(requestId, JSON.stringify(result))
+      })
+      return JSON.stringify({ state: 'checking', message: '正在检查 GitHub 正式版本…' })
+    },
+    openExternal: (url) => {
+      // 与原生一致：不可信链接拒绝打开（浏览器预览同样不冒称真机安装源）
+      if (!isTrustedReleaseUrl(url)) {
+        note = '链接未通过可信校验，已停止打开'
+        return
+      }
+      window.open(url, '_blank', 'noopener')
+    },
     control: (action) => {
       if (action === 'export') {
         // ③ 与原生 SAF 导出对齐：下载 JSON 备份

@@ -9,10 +9,14 @@ public final class MoriAppearance {
         if(("gentle".equals(focus)&&gentle==max)||("playful".equals(focus)&&playful==max)||("curious".equals(focus)&&curious==max))return focus;
         return gentle==max?"gentle":playful==max?"playful":"curious";
     }
+    /** 与 web/src/game/matrixScene.ts 的 selectScene 同规则（0.3.6）：
+     *  死亡优先于需求；健康/清洁低 = sick，饱食低 = hungry，心情低 = unhappy，精力低 = sleep。 */
     public static String scene(double health,double energy,double hunger,double joy,double hygiene){
-        if(health<30)return "hungry";
+        if(health<=0)return "dead";
+        if(health<30||hygiene<22)return "sick";
+        if(hunger<28)return "hungry";
+        if(joy<28)return "unhappy";
         if(energy<24)return "sleep";
-        if(hunger<28||joy<28||hygiene<22)return "hungry";
         return (health+energy+hunger+joy+hygiene)/5>64?"happy":"idle";
     }
     public static String key(String scene,double growth,double gentle,double playful,double curious,String focus,String wearable){

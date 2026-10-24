@@ -4,12 +4,15 @@ import { getDominantPersonality, getGrowthStage, INCIDENT_BY_ID, MINUTE_MS, sett
 import { getStoryBondRequirement, isStoryUnlocked, STORY_EVENTS, useGameStore } from './game/store'
 import { getMood, type CareAction, type GameSnapshot, type IncidentId, type NeedKey } from './game/types'
 import { useNostalgiaMusic } from './audio/chiptune'
+import { WEB_APP_VERSION } from './game/version'
 import { ActivityArcade } from './ui/ActivityArcade'
 import { FirstRunTutorial } from './ui/FirstRunTutorial'
 import { GrowthStudio } from './ui/GrowthStudio'
 import { feedback } from './zh'
 import { NeoCompanion } from './ui/NeoCompanion'
 import { MatrixPreview } from './ui/MatrixPreview'
+import { PetDot } from './ui/PetDot'
+import { PETS } from '../../studio-art/pets'
 import { PocketVault } from './ui/PocketVault'
 
 const PetScene = lazy(() => import('./scene/PetScene').then((module) => ({ default: module.PetScene })))
@@ -338,7 +341,7 @@ export default function App() {
           <span>拓麻<br />歌子</span>
         </a>
         <div className="topbar-actions">
-          <span className="save-status"><i /> LOCAL SAVE</span>
+          <span className="save-status"><i /> 本机存档</span>
           {!isInstalled && (installPrompt || isIos) && (
             <button className="text-button install-button" onClick={() => void install()}>
               <span className="install-label-long">INSTALL APP</span><span className="install-label-short">INSTALL</span>
@@ -395,6 +398,7 @@ export default function App() {
                 <span>年龄 {ageLabel}</span>
               </div>
               <div ref={sceneWrapRef} className="scene-wrap matrix-scene-secondary">
+                {game.character === 'star' || game.character === 'block' ? (
                 <Suspense fallback={<div className="scene-loading">正在醒来……</div>}>
                   <PetScene
                     theme={theme}
@@ -414,6 +418,9 @@ export default function App() {
                     onPlay={() => care('play')}
                   />
                 </Suspense>
+                ) : (
+                  <MatrixPreview snapshot={game} cell={6} onSoothe={game.sootheEgg} />
+                )}
                 <button className="scene-play-button" onClick={() => care('play')}>和它玩</button>
                 {activeAction && actionFeedback && (
                   <div key={`action-${game.actionNonce}`} className={`action-feedback action-feedback-${activeAction}`} role="status" aria-live="polite">
@@ -472,22 +479,18 @@ export default function App() {
           <div className="character-picker" role="group" aria-label="角色与耳机">
             <span className="character-picker-label">形象</span>
             <div className="character-options">
-              <button
-                type="button"
-                className={game.character === 'star' ? 'character-option active' : 'character-option'}
-                aria-pressed={game.character === 'star'}
-                onClick={() => game.setCharacter('star')}
-              >
-                <b>星跃</b><small>圆润星形精灵</small>
-              </button>
-              <button
-                type="button"
-                className={game.character === 'block' ? 'character-option active' : 'character-option'}
-                aria-pressed={game.character === 'block'}
-                onClick={() => game.setCharacter('block')}
-              >
-                <b>方跃</b><small>像素方块精灵</small>
-              </button>
+              {PETS.map((pet) => (
+                <button
+                  key={pet.id}
+                  type="button"
+                  className={game.character === pet.id ? 'character-option active' : 'character-option'}
+                  aria-pressed={game.character === pet.id}
+                  onClick={() => game.setCharacter(pet.id)}
+                >
+                  <PetDot character={pet.id} cell={3} animated={false} />
+                  <b>{pet.name}</b><small>{pet.tagline}</small>
+                </button>
+              ))}
               <button
                 type="button"
                 className={game.headphones ? 'character-option active' : 'character-option'}
@@ -498,7 +501,7 @@ export default function App() {
               </button>
             </div>
           </div>
-          <button className="story-button" onClick={game.openStory} disabled={!storyUnlocked}>
+          <button className="story-button" onClick={() => game.openStory()} disabled={!storyUnlocked}>
             <span>{!story ? '所有回忆已收集' : storyUnlocked ? '打开下一段回忆' : `亲密度 ${storyRequirement}% 解锁下一段回忆`}</span><b>→</b>
           </button>
         </aside>
@@ -537,14 +540,14 @@ export default function App() {
       <PocketVault />
 
       <footer>
-        <span>拓麻歌子 0.3.4 · 星跃 / 方跃 · 基于 Mori 开源项目</span>
+        <span>拓麻歌子 {WEB_APP_VERSION} · 8 位小伙伴 · 基于 Mori 开源项目</span>
         <button onClick={() => { if (window.confirm('重新领养会清空当前进度。请先导出备份，确定重新开始吗？')) game.reset() }}>重新领养</button>
       </footer>
 
       {game.storyOpen && story && game.hatched && (
         <div className="story-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) game.closeStory() }}>
           <section className="story-dialog" role="dialog" aria-modal="true" aria-labelledby="story-title">
-            <button className="dialog-close" onClick={game.closeStory} aria-label="关闭回忆">×</button>
+            <button className="dialog-close" onClick={() => game.closeStory()} aria-label="关闭回忆">×</button>
             <div className="story-art" aria-hidden="true"><span>✦</span><i /><b>◉‿◉</b></div>
             <div className="story-content">
               <p className="eyebrow">{story.eyebrow}</p>

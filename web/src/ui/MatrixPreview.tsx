@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from 'react'
 
 import { eggRemainingSeconds, eggPhase, selectAppearance, selectScene } from '../game/matrixScene'
 import type { GameSnapshot } from '../game/types'
-import { FPS, renderMori, type Scene } from '../../../studio-art/mori'
+import { FPS, SCENE_LABELS, renderMori, type Scene } from '../../../studio-art/mori'
+import { themeColor } from './themeColor'
 
 const W = 17
 const H = 23
@@ -37,13 +38,9 @@ function eggLabel(phase: 'egg' | 'crack' | 'hatch' | 'hatched', remain: number):
   return ''
 }
 
-/** 场景自然文案（不暴露内部 scene key） */
-const SCENE_LABEL: Record<Scene, string> = {
-  idle: '悠闲待着', eat: '吃饭中', play: '玩耍中', sleep: '睡觉中', happy: '心满意足',
-  pet: '亲昵依赖', hungry: '需要照顾', egg: '蛋', crack: '裂纹', hatch: '破壳',
-}
+/** 场景自然文案（与 studio-art/mori 的 SCENE_LABELS 同源，不暴露内部 key） */
 function sceneLabel(scene: Scene): string {
-  return SCENE_LABEL[scene] ?? '陪伴中'
+  return SCENE_LABELS[scene] ?? '陪伴中'
 }
 
 export function MatrixPreview({ snapshot, cell = 14, onSoothe }: MatrixPreviewProps) {
@@ -84,10 +81,10 @@ export function MatrixPreview({ snapshot, cell = 14, onSoothe }: MatrixPreviewPr
       // 外观维度与原生 MoriAppearance 同规则（最高分/平分），不只用 personalityFocus
       const { stage, personality, wearable } = selectAppearance(snapshot)
       const frame = renderMori(snapshot.character, scene, phase, stage, personality, wearable, snapshot.headphones)
-      const styles = getComputedStyle(document.documentElement)
-      const screen = styles.getPropertyValue('--screen').trim() || '10 11 14'
-      const grid = styles.getPropertyValue('--screen-grid').trim() || '96 104 118'
-      const accent = styles.getPropertyValue('--accent').trim() || '249 115 22'
+      // 0.3.6：主题色是十六进制，统一解析；点阵像素值本身不变，只换显示色
+      const screen = themeColor('--screen', '27 28 25')
+      const grid = themeColor('--screen-grid', '96 104 118')
+      const accent = themeColor('--accent', '247 214 94')
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.fillStyle = `rgb(${screen})`

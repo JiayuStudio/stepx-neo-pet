@@ -1,4 +1,5 @@
 import {
+  CHARACTERS,
   EGG_DURATION_MS,
   INITIAL_INCIDENT_DELAY_MS,
   KEEPSAKE_BY_ID,
@@ -161,11 +162,10 @@ export const normalizeSnapshot = (value: unknown, now = Date.now()): GameSnapsho
     ? validTimestamp(source.eggSoothedAt, now, now, now + EGG_DURATION_MS)
     : null
   const rawName = typeof source.petName === 'string' && source.petName.trim() ? source.petName.trim().slice(0, 30) : fresh.petName
-  // 已知系统默认名（点点 / Mori / 另一角色默认名）一律迁移为当前角色默认名；自定义名保留
-  const otherDefault = DEFAULT_CHARACTER_NAMES[character === 'star' ? 'block' : 'star']
-  const petName = rawName === '点点' || rawName === 'Mori' || rawName === otherDefault
-    ? DEFAULT_CHARACTER_NAMES[character]
-    : rawName
+  // 已知系统默认名（点点 / Mori / 任意其他角色默认名）一律迁移为当前角色默认名；自定义名保留
+  const knownDefaults = new Set<string>(['点点', 'Mori', ...CHARACTERS.map((id) => DEFAULT_CHARACTER_NAMES[id])])
+  knownDefaults.delete(DEFAULT_CHARACTER_NAMES[character])
+  const petName = knownDefaults.has(rawName) ? DEFAULT_CHARACTER_NAMES[character] : rawName
   const mode = MODES.includes(source.mode as GameMode) ? source.mode as GameMode : fresh.mode
   const themeId = THEMES.includes(source.themeId as ThemeId) ? source.themeId as ThemeId : fresh.themeId
   const personalityFocus = isPersonalityId(source.personalityFocus) ? source.personalityFocus : fresh.personalityFocus

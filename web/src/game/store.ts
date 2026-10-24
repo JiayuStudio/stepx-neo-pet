@@ -11,7 +11,18 @@ declare global {
       dispatch(action: string, args: string): string
       companion(): string
       control(action: string): void
+      /** 0.3.5 检查更新（原生：异步 HTTPS 校验 GitHub 正式 Release）；
+       *  浏览器预览的模拟桥用同一套 TS 策略直连公开 API。
+       *  requestId 由页面每次检查生成，结果经 __neoUpdateResult(requestId, json) 原样带回，
+       *  页面据此丢弃过期结果；桥在**发起时**捕获该次回调，旧结果不会进新请求。 */
+      checkUpdate(requestId: string): string
+      /** 用系统浏览器打开可信发布页 / 下载链接（不可信链接原生会拒绝） */
+      openExternal(url: string): void
+      /** 模拟桥标记：浏览器预览适配器所装，非真实原生壳（安全区等据此区分） */
+      browserPreview?: boolean
     }
+    /** 原生检查更新的异步结果投递入口（页面安装；原生不存在时不调用） */
+    __neoUpdateResult?: (requestId: string, resultJson: string) => void
   }
 }
 const names = ['care','completeActivity','chooseStory','purchaseKeepsake','toggleKeepsake','openStory','closeStory','setTheme','setMode','setCharacter','setHeadphones','sootheEgg','exportSave','importSave','reset'] as const

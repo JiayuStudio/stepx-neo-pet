@@ -1,5 +1,5 @@
 export type ThemeId = 'sakura' | 'cyber' | 'moss' | 'moon'
-export type CharacterId = 'star' | 'block'
+export type CharacterId = 'star' | 'block' | 'sprout' | 'bunny' | 'fox' | 'otter' | 'owl' | 'drake'
 export type GameMode = 'cozy' | 'classic'
 export type NeedKey = 'hunger' | 'joy' | 'hygiene' | 'energy' | 'health'
 export type PetNeeds = Record<NeedKey, number>

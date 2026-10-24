@@ -54,14 +54,32 @@ public final class MainActivity extends Activity {
         setContentView(root);root.requestApplyInsets();web.loadUrl(ORIGIN+"/index.html");
     }
     private WebResourceResponse blocked(){return new WebResourceResponse("text/plain","UTF-8",404,"Not Found",java.util.Collections.emptyMap(),new ByteArrayInputStream(new byte[0]));}
+    /** 当前版本从真实应用包读取（0.3.5：不再硬编码） */
+    private String currentVersion(){
+        try{return getPackageManager().getPackageInfo(getPackageName(),0).versionName;}catch(Exception e){return null;}
+    }
     public final class Bridge {
         @JavascriptInterface public String snapshot(){return PetStore.snapshot(MainActivity.this).toString();}
         @JavascriptInterface public String dispatch(String action,String args){
             try{return PetStore.dispatch(MainActivity.this,action,args);}catch(Exception e){try{return new JSONObject().put("error", "操作未完成："+e.getMessage()).toString();}catch(Exception ignored){return "{}";}}
         }
         @JavascriptInterface public String companion(){
-            try{return new JSONObject().put("running",PetService.running()).put("status",PetService.status(MainActivity.this)).put("version","0.3.3").toString();}catch(Exception e){return "{}";}
+            try{return new JSONObject().put("running",PetService.running()).put("status",PetService.status(MainActivity.this)).put("version",currentVersion()).toString();}catch(Exception e){return "{}";}
         }
+        /** 0.3.5 检查更新：用户主动触发；requestId 由页面每次检查生成，
+         *  结果异步原样带回 window.__neoUpdateResult(requestId, json)，页面据此丢弃过期结果。 */
+        @JavascriptInterface public String checkUpdate(String requestId){
+            String version=currentVersion();
+            if(version==null){try{return new JSONObject().put("state","error").put("message","无法读取当前版本号").toString();}catch(Exception e){return "{\"state\":\"error\"}";}}
+            final String id=(requestId==null||requestId.isEmpty())?"u0":requestId;
+            final boolean started=UpdateChecker.check(MainActivity.this,version,result->{
+                if(web==null)return;
+                web.evaluateJavascript("window.__neoUpdateResult && window.__neoUpdateResult("+JSONObject.quote(id)+","+JSONObject.quote(result.toString())+")",null);
+            });
+            try{return new JSONObject().put("state","checking").put("message",started?"正在检查 GitHub 正式版本…":"检查正在进行中").toString();}catch(Exception e){return "{\"state\":\"checking\"}";}
+        }
+        /** 用系统浏览器打开可信发布页 / 下载链接（校验在 UpdatePolicy，不可信直接拒绝） */
+        @JavascriptInterface public void openExternal(String url){main.post(()->{if(!isFinishing()&&!isDestroyed())UpdateChecker.openExternal(MainActivity.this,url);});}
         @JavascriptInterface public void control(String action){main.post(()->{
             if(isFinishing()||isDestroyed())return;
             switch(action){

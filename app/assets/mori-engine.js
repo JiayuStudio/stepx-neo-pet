@@ -97,8 +97,10 @@ exports.MINUTE_MS = 60000;
 exports.EGG_DURATION_MS = 60000; // 新领养默认 60 秒孵化
 exports.EGG_CRACK_MS = 50000; // 前 50 秒完好的蛋逐渐裂纹
 exports.EGG_HATCH_MS = 58000; // 最后段破壳动画
-exports.CHARACTERS = ['star', 'block'];
-exports.DEFAULT_CHARACTER_NAMES = { star: '星跃', block: '方跃' };
+exports.CHARACTERS = ['star', 'block', 'sprout', 'bunny', 'fox', 'otter', 'owl', 'drake'];
+exports.DEFAULT_CHARACTER_NAMES = {
+    star: '星跃', block: '方跃', sprout: '芽灵', bunny: '绒兔', fox: '焰狐', otter: '泡獭', owl: '眠鸮', drake: '角龙',
+};
 var isCharacterId = function (value) {
     return typeof value === 'string' && exports.CHARACTERS.includes(value);
 };
@@ -507,11 +509,10 @@ var normalizeSnapshot = function (value, now) {
         ? validTimestamp(source.eggSoothedAt, now, now, now + progression_1.EGG_DURATION_MS)
         : null;
     var rawName = typeof source.petName === 'string' && source.petName.trim() ? source.petName.trim().slice(0, 30) : fresh.petName;
-    // 已知系统默认名（点点 / Mori / 另一角色默认名）一律迁移为当前角色默认名；自定义名保留
-    var otherDefault = progression_1.DEFAULT_CHARACTER_NAMES[character === 'star' ? 'block' : 'star'];
-    var petName = rawName === '点点' || rawName === 'Mori' || rawName === otherDefault
-        ? progression_1.DEFAULT_CHARACTER_NAMES[character]
-        : rawName;
+    // 已知系统默认名（点点 / Mori / 任意其他角色默认名）一律迁移为当前角色默认名；自定义名保留
+    var knownDefaults = new Set(__spreadArray(['点点', 'Mori'], __read(progression_1.CHARACTERS.map(function (id) { return progression_1.DEFAULT_CHARACTER_NAMES[id]; })), false));
+    knownDefaults.delete(progression_1.DEFAULT_CHARACTER_NAMES[character]);
+    var petName = knownDefaults.has(rawName) ? progression_1.DEFAULT_CHARACTER_NAMES[character] : rawName;
     var mode = MODES.includes(source.mode) ? source.mode : fresh.mode;
     var themeId = THEMES.includes(source.themeId) ? source.themeId : fresh.themeId;
     var personalityFocus = (0, progression_1.isPersonalityId)(source.personalityFocus) ? source.personalityFocus : fresh.personalityFocus;
@@ -873,7 +874,7 @@ function dispatchGame(action, argumentsJson) {
   if (action === 'care' && !progression.CARE_TRAIT[args[0]]) throw new Error('照料方式错误');
   if (action === 'setMode' && ['cozy','classic'].indexOf(args[0]) < 0) throw new Error('模式错误');
   if (action === 'setTheme' && ['sakura','cyber','moss','moon'].indexOf(args[0]) < 0) throw new Error('主题错误');
-  if (action === 'setCharacter' && ['star','block'].indexOf(args[0]) < 0) throw new Error('角色错误');
+  if (action === 'setCharacter' && ['star','block','sprout','bunny','fox','otter','owl','drake'].indexOf(args[0]) < 0) throw new Error('角色错误');
   if (action === 'completeActivity' && ['star-catch','memory-flip'].indexOf(args[0]) < 0) throw new Error('游戏类型错误');
   if (action === 'chooseStory' && !stories.isStoryUnlocked(state.storyIndex, state.bond)) throw new Error('这段回忆尚未解锁');
   var result = game.getState()[action].apply(null, args);

@@ -1,11 +1,13 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.diandian.neopet" android:versionCode="304" android:versionName="0.3.4">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.diandian.neopet" android:versionCode="307" android:versionName="0.3.7">
   <uses-sdk android:minSdkVersion="34" android:targetSdkVersion="36" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
   <uses-permission android:name="android.permission.WAKE_LOCK" />
   <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-  <application android:label="拓麻歌子 0.3.4" android:icon="@drawable/icon" android:theme="@style/AppTheme" android:allowBackup="false" android:supportsRtl="true">
+  <!-- 0.3.5 检查更新：仅原生侧 HTTPS 请求公开 GitHub Release API（WebView 网络保持关闭） -->
+  <uses-permission android:name="android.permission.INTERNET" />
+  <application android:label="拓麻歌子 0.3.7" android:icon="@drawable/icon" android:theme="@style/AppTheme" android:allowBackup="false" android:supportsRtl="true">
     <activity android:name=".MainActivity" android:exported="true">
       <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
     </activity>
