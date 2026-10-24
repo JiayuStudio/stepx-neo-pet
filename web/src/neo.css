@@ -36,11 +36,11 @@ body, button, textarea, h1, h2, h3, h4, .brand, .eyebrow { font-family: system-u
   .story-dialog,.tutorial-dialog,.game-dialog { max-height: 90dvh; overflow-y: auto; }
 }
 
-.pocket-nav { display:flex; position:sticky; top:var(--safe-top,0px); z-index:8; gap:4px; padding:8px; border-radius:14px; background:var(--paper); border:2px solid var(--ink); margin:16px 0; }
-/* 吸顶时把顶部安全区铺成同背景：内容从导航下方滑入，不穿插到状态栏区域 */
-.pocket-nav::before { content:''; position:absolute; z-index:-1; left:-10px; right:-10px; bottom:calc(100% + 2px); height:var(--safe-top,0px); background:var(--paper); border-radius:14px 14px 0 0; }
+.pocket-nav { display:flex; position:sticky; top:var(--safe-top,0px); z-index:8; gap:4px; padding:8px; border-radius:14px; background:var(--paper); border:2px solid var(--ink); margin:8px 0 16px; }
+/* 安全区固定铺在视口顶部，不跟随导航在首屏额外画出一条色块。 */
+.app::after { content:''; position:fixed; inset:0 0 auto; height:var(--safe-top,0px); z-index:9; background:var(--marker-paper,var(--paper)); pointer-events:none; }
 .pocket-nav a { flex:1; min-height:44px; display:flex; align-items:center; justify-content:center; text-align:center; color:var(--ink); padding:8px 2px; font-size:13px; font-weight:800; text-decoration:none; border-radius:10px; }
-#care-panel,#growth-title,#activity-title,#vault-title { scroll-margin-top:calc(var(--safe-top,0px) + 76px); }
+#home,#care-panel,#growth-title,#activity-title,#vault-title { scroll-margin-top:calc(var(--safe-top,0px) + 76px); }
 @media(max-width:600px){
  .topbar { padding:12px 14px !important; min-height:60px; }
  .neo-companion { margin-top:12px; }
@@ -182,7 +182,7 @@ h1 em, h2 em, h3 em {
   border-radius: var(--marker-radius);
   box-shadow: var(--marker-shadow);
 }
-.pocket-nav::before { background: var(--marker-yellow); }
+
 .pocket-nav a { border-radius: 10px; }
 .pocket-nav a[aria-current="true"], .pocket-nav a:target { background: rgba(255, 255, 255, .5); }
 
@@ -506,3 +506,8 @@ h1 em, h2 em, h3 em, .section-lead h2 em { color: var(--marker-ink); }
 /* 页脚在 342/390 下换行而不是截断 */
 footer { flex-wrap: wrap; gap: 8px 16px; }
 footer span { min-width: 0; }
+
+/* 0.3.8 更新入口位于存档之后，避免占用首屏。 */
+.neo-update-panel { margin: 20px 0 24px; padding: 18px; border: 3px solid var(--marker-ink); border-radius: var(--marker-radius); background: var(--marker-paper); box-shadow: var(--marker-shadow); }
+.neo-update-panel h2 { margin: 0 0 12px; font-size: 24px; }
+.neo-update-panel small { display: block; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }

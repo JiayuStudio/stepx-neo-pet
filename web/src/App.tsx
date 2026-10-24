@@ -9,7 +9,7 @@ import { ActivityArcade } from './ui/ActivityArcade'
 import { FirstRunTutorial } from './ui/FirstRunTutorial'
 import { GrowthStudio } from './ui/GrowthStudio'
 import { feedback } from './zh'
-import { NeoCompanion } from './ui/NeoCompanion'
+import { NeoCompanion, NeoUpdate } from './ui/NeoCompanion'
 import { MatrixPreview } from './ui/MatrixPreview'
 import { PetDot } from './ui/PetDot'
 import { PETS } from '../../studio-art/pets'
@@ -354,6 +354,8 @@ export default function App() {
         </div>
       </header>
 
+      <nav className="pocket-nav" aria-label="主要导航"><a href="#home">宠物</a><a href="#care-panel">照料</a><a href="#growth-title">成长</a><a href="#activity-title">小游戏</a><a href="#vault-title">存档</a></nav>
+
       {returnBrief && returnAction && returnNeed && (
         <section className="return-brief" aria-labelledby="return-brief-title" aria-live="polite">
           <span className="return-brief-mark" aria-hidden="true">↺</span>
@@ -376,7 +378,6 @@ export default function App() {
       )}
 
       <NeoCompanion />
-      <nav className="pocket-nav"><a href="#home">宠物</a><a href="#care-panel">照料</a><a href="#growth-title">成长</a><a href="#activity-title">小游戏</a><a href="#vault-title">存档</a></nav>
       <main id="home" className="game-layout">
         <section className="hero-copy" aria-labelledby="pet-title">
           <p className="eyebrow">{growthStage.name.toUpperCase()} · {({gentle:'温柔',playful:'活泼',curious:'好奇'})[personality]}性格</p>
@@ -538,6 +539,7 @@ export default function App() {
       </section>
 
       <PocketVault />
+      <NeoUpdate />
 
       <footer>
         <span>拓麻歌子 {WEB_APP_VERSION} · 8 位小伙伴 · 基于 Mori 开源项目</span>

@@ -4,7 +4,7 @@
 
 ![APP 图标](docs/app-icon.png)
 
-**当前版本：0.3.7** · [下载 APK](https://github.com/JiayuStudio/stepx-neo-pet/releases/tag/v0.3.7) · [更新记录](CHANGELOG.md) · [StepX Neo 研究所](https://github.com/JiayuStudio/stepx-neo-lab)
+**当前版本：0.3.8** · [下载 APK](https://github.com/JiayuStudio/stepx-neo-pet/releases/tag/v0.3.8) · [更新记录](CHANGELOG.md) · [StepX Neo 研究所](https://github.com/JiayuStudio/stepx-neo-lab)
 
 [![拓麻歌子宣传片](docs/promo-poster.png)](https://github.com/JiayuStudio/stepx-neo-pet/releases/download/v0.3.4/tamagochi-promo-60s.mp4)
 
@@ -26,7 +26,7 @@
 
 适用于带有兼容背屏接口的 STEPX Neo，最低 Android 14。其他手机的点阵硬件不在支持范围内。
 
-1. 从 [v0.3.7 发布页](https://github.com/JiayuStudio/stepx-neo-pet/releases/tag/v0.3.7) 下载 `diandian-native-0.3.7.apk`，按 Android 提示安装。已有同签名原生版可覆盖升级；升级前可在“存档”导出备份。
+1. 从 [v0.3.8 发布页](https://github.com/JiayuStudio/stepx-neo-pet/releases/tag/v0.3.8) 下载 `diandian-native-0.3.8.apk`，按 Android 提示安装。已有同签名原生版可覆盖升级；升级前可在“存档”导出备份。
 2. 打开“拓麻歌子”，允许通知，点“开启背屏”。一次只运行一个背屏播放器。
 3. 打开“后台设置”，允许后台运行并关闭本应用的电池优化。
 4. 把背屏朝上或竖直放置，保持无遮挡，锁屏观察动作是否继续。
@@ -53,13 +53,13 @@ adb shell dumpsys activity freeze whiteRemove com.diandian.neopet
 
 ## 本版变化与验证
 
-0.3.7 更换原创萌宠 APP 图标。界面采用暖纸色、彩色块、马克笔粗描边和硬阴影，保留八宠物、点阵动画、成长、饰品与耳机组合。修复回忆按钮的点击事件序列化问题。
+0.3.8 修复黄色导航栏在首屏被设置面板推到中间的问题，导航移到标题栏下方并保持吸顶；检查更新移到页面底部、存档之后。移除多余的黄色安全区色块。界面采用暖纸色、彩色块、马克笔粗描边和硬阴影，保留八宠物、点阵动画、成长、饰品与耳机组合。修复回忆按钮的点击事件序列化问题。
 
 APP 内“检查更新”读取本仓库最新正式 Release，比较版本并提供匹配的 APK 下载入口，不会自动安装。首版公开后及后续版本都会同步更新源与发布包。
 
 本轮通过生产构建、原生构建、签名和更新策略检查。此前对八宠物120段动画做过结构检查，55,488帧逐像素比对通过；浏览器实际验证角色切换、六种照料、回忆打开/关闭、备份恢复，以及342px/390px布局。
 
-0.3.7 的真机背屏、锁屏持续刷新、覆盖安装和长期耗电仍待验证。旧版的真机结果不替代本版验收。
+0.3.8 的真机背屏、锁屏持续刷新、覆盖安装和长期耗电仍待验证。旧版的真机结果不替代本版验收。
 
 ## 从源码构建
 
