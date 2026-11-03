@@ -2,7 +2,7 @@ var game = require('store').useGameStore;
 var save = require('save');
 var progression = require('progression');
 var stories = require('stories');
-var allowed = ['tick','care','completeActivity','chooseStory','purchaseKeepsake','toggleKeepsake','openStory','closeStory','setTheme','setMode','setCharacter','setHeadphones','sootheEgg','exportSave','importSave','reset'];
+var allowed = ['tick','care','completeActivity','chooseStory','purchaseKeepsake','toggleKeepsake','openStory','closeStory','setTheme','setMode','setCharacter','setHeadphones','sootheEgg','setLifeMode','setQuiet','setNotify','recordNotification','takeNotification','notificationPreview','clearMessages','adoptAgain','exportSave','importSave','reset'];
 function initGame(saved, legacy) {
   var snapshot = saved ? save.normalizeSnapshot(JSON.parse(saved)) : save.freshSnapshot();
   if (!saved) {
@@ -30,10 +30,29 @@ function dispatchGame(action, argumentsJson) {
   if (!Array.isArray(args) || args.length > 2) throw new Error('操作参数错误');
   if (action === 'care' && !progression.CARE_TRAIT[args[0]]) throw new Error('照料方式错误');
   if (action === 'setMode' && ['cozy','classic'].indexOf(args[0]) < 0) throw new Error('模式错误');
+  if (action === 'setLifeMode' && ['gentle','cycle'].indexOf(args[0]) < 0) throw new Error('生命周期模式错误');
+  if (action === 'recordNotification' && !(typeof args[0] === 'number' && isFinite(args[0]))) throw new Error('通知时间错误');
+  if ((action === 'takeNotification' || action === 'notificationPreview') && !(typeof args[0] === 'number' && isFinite(args[0]) && typeof args[1] === 'boolean')) throw new Error('通知参数错误');
   if (action === 'setTheme' && ['sakura','cyber','moss','moon'].indexOf(args[0]) < 0) throw new Error('主题错误');
   if (action === 'setCharacter' && ['star','block','sprout','bunny','fox','otter','owl','drake'].indexOf(args[0]) < 0) throw new Error('角色错误');
   if (action === 'completeActivity' && ['star-catch','memory-flip'].indexOf(args[0]) < 0) throw new Error('游戏类型错误');
   if (action === 'chooseStory' && !stories.isStoryUnlocked(state.storyIndex, state.bond)) throw new Error('这段回忆尚未解锁');
+  if (action === 'setQuiet' || action === 'setNotify') {
+    var patch = args[0];
+    if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw new Error('设置格式错误');
+    var keys = Object.keys(patch);
+    keys.forEach(function(key) {
+      var value = patch[key];
+      if (action === 'setQuiet') {
+        if (['manual','schedule','weekdaysOnly'].indexOf(key) >= 0 && typeof value === 'boolean') return;
+        if (['startMinute','endMinute'].indexOf(key) >= 0 && typeof value === 'number' && isFinite(value) && value >= 0 && value < 1440 && value % 1 === 0) return;
+      } else {
+        if (['enabled','vibrate'].indexOf(key) >= 0 && typeof value === 'boolean') return;
+        if (key === 'frequency' && ['low','normal'].indexOf(value) >= 0) return;
+      }
+      throw new Error('设置值无效');
+    });
+  }
   var result = game.getState()[action].apply(null, args);
   return JSON.stringify({ snapshot: game.getState(), result: result === undefined ? null : result });
 }

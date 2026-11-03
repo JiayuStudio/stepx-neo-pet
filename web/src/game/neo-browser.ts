@@ -245,6 +245,9 @@ export function installBrowserNeoNative(): boolean {
           reader.readAsText(file)
         }
         input.click()
+      } else if (action === 'notificationTest' || action === 'notificationSettings' || action === 'notificationPermission') {
+        note = '网页预览不会发送手机通知或震动，请在 GitHub 原生 APK 中体验'
+        if (action === 'notificationTest') window.alert(note)
       } else if (action === 'start') {
         note = '预览模式无法启动背屏：请安装「拓麻歌子原生版」APK 后在 Neo 真机开启'
       } else if (action === 'settings') {

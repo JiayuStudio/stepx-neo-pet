@@ -14,6 +14,10 @@ public class ScenePolicyTest {
         // 死亡优先
         eq(MoriAppearance.scene(0, 80, 80, 80, 80), "dead", "health 0 is dead");
         eq(MoriAppearance.scene(-5, 80, 80, 80, 80), "dead", "negative health is dead");
+        // 0.3.9：温柔陪伴模式绝不画成死亡
+        eq(MoriAppearance.scene(0, 80, 80, 80, 80, true), "sick", "gentle mode shows sick at zero health");
+        eq(MoriAppearance.scene(-5, 80, 80, 80, 80, true), "sick", "gentle mode never renders death");
+        eq(MoriAppearance.scene(0, 80, 80, 80, 80, false), "dead", "lifecycle mode still shows farewell posture");
         // 健康 / 清洁低 → 生病
         eq(MoriAppearance.scene(20, 80, 80, 80, 80), "sick", "low health is sick");
         eq(MoriAppearance.scene(80, 80, 80, 80, 10), "sick", "low hygiene is sick");

@@ -25,6 +25,7 @@ public final class MainActivity extends Activity {
             catch(Exception e){PetService.prefs(this).edit().putString("status","背屏恢复待重试").apply();}
         }
         try{PetStore.snapshot(this);}catch(Exception e){new AlertDialog.Builder(this).setTitle("存档暂时无法打开").setMessage(e.getMessage()).setPositiveButton("关闭",(d,w)->finish()).show();return;}
+        CompanionNotice.ensureChannels(this);
         web=new WebView(this);web.setBackgroundColor(0xfffff5df);
         WebSettings settings=web.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(false);settings.setAllowContentAccess(false);settings.setBlockNetworkLoads(true);
@@ -64,7 +65,12 @@ public final class MainActivity extends Activity {
             try{return PetStore.dispatch(MainActivity.this,action,args);}catch(Exception e){try{return new JSONObject().put("error", "操作未完成："+e.getMessage()).toString();}catch(Exception ignored){return "{}";}}
         }
         @JavascriptInterface public String companion(){
-            try{return new JSONObject().put("running",PetService.running()).put("status",PetService.status(MainActivity.this)).put("version",currentVersion()).toString();}catch(Exception e){return "{}";}
+            try{return new JSONObject().put("running",PetService.running())
+                .put("status",PetService.status(MainActivity.this))
+                .put("reason",PetService.reason(MainActivity.this))
+                .put("notificationsPermitted",CompanionNotice.permitted(MainActivity.this,PetStore.snapshot(MainActivity.this).getJSONObject("notify").optBoolean("vibrate")))
+                .put("systemQuiet",CompanionNotice.systemQuiet(MainActivity.this))
+                .put("version",currentVersion()).toString();}catch(Exception e){return "{}";}
         }
         /** 0.3.5 检查更新：用户主动触发；requestId 由页面每次检查生成，
          *  结果异步原样带回 window.__neoUpdateResult(requestId, json)，页面据此丢弃过期结果。 */
@@ -72,11 +78,14 @@ public final class MainActivity extends Activity {
             String version=currentVersion();
             if(version==null){try{return new JSONObject().put("state","error").put("message","无法读取当前版本号").toString();}catch(Exception e){return "{\"state\":\"error\"}";}}
             final String id=(requestId==null||requestId.isEmpty())?"u0":requestId;
-            final boolean started=UpdateChecker.check(MainActivity.this,version,result->{
+            UpdateChecker.Status status=UpdateChecker.check(MainActivity.this,version,result->{
                 if(web==null)return;
                 web.evaluateJavascript("window.__neoUpdateResult && window.__neoUpdateResult("+JSONObject.quote(id)+","+JSONObject.quote(result.toString())+")",null);
             });
-            try{return new JSONObject().put("state","checking").put("message",started?"正在检查 GitHub 正式版本…":"检查正在进行中").toString();}catch(Exception e){return "{\"state\":\"checking\"}";}
+            try{
+                if(status==UpdateChecker.Status.BUSY)return new JSONObject().put("state","busy").put("message","上一次检查还没结束，请稍后再试").toString();
+                return new JSONObject().put("state","checking").put("message","正在检查 GitHub 正式版本…").toString();
+            }catch(Exception e){return "{\"state\":\"checking\"}";}
         }
         /** 用系统浏览器打开可信发布页 / 下载链接（校验在 UpdatePolicy，不可信直接拒绝） */
         @JavascriptInterface public void openExternal(String url){main.post(()->{if(!isFinishing()&&!isDestroyed())UpdateChecker.openExternal(MainActivity.this,url);});}
@@ -87,6 +96,9 @@ public final class MainActivity extends Activity {
                 case "stop":if(PetService.running())startService(new Intent(MainActivity.this,PetService.class).setAction(PetService.STOP));break;
                 case "settings":backgroundSettings();break;
                 case "licenses":licenses();break;
+                case "notificationPermission":requestNotificationPermission();break;
+                case "notificationSettings":notificationSettings();break;
+                case "notificationTest":testNotification();break;
                 case "export":startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/json").putExtra(Intent.EXTRA_TITLE,"diandian-save.json"),201);break;
                 case "import":startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/json"),202);break;
             }
@@ -116,6 +128,31 @@ public final class MainActivity extends Activity {
             }
         }catch(Exception e){Toast.makeText(this,"备份操作未完成："+e.getMessage(),Toast.LENGTH_LONG).show();}
     }
+    /** 用户开启主动通知时才申请权限；被拒后不再反复弹，改为提供设置入口 */
+    private void testNotification(){
+        try {
+            JSONObject notify=PetStore.snapshot(this).getJSONObject("notify");
+            boolean vibrate=notify.optBoolean("vibrate");
+            if(!CompanionNotice.permitted(this,vibrate)){
+                Toast.makeText(this,"请先在系统设置中允许所选消息频道",Toast.LENGTH_LONG).show();return;
+            }
+            long now=System.currentTimeMillis();
+            JSONObject result=new JSONObject(PetStore.dispatch(this,"notificationPreview",new JSONArray().put(now).put(CompanionNotice.systemQuiet(this)).toString())).getJSONObject("result");
+            if(!result.optBoolean("ok")){Toast.makeText(this,result.optString("reason"),Toast.LENGTH_LONG).show();return;}
+            boolean sent=CompanionNotice.post(this,"test","拓麻歌子","轻轻碰一下，确认我能陪在你身边。",vibrate);
+            Toast.makeText(this,sent?"测试提醒已交给系统，实际提醒由系统设置决定":"提醒未发送，请检查系统设置",Toast.LENGTH_LONG).show();
+        } catch(Exception e){Toast.makeText(this,"测试提醒暂不可用",Toast.LENGTH_LONG).show();}
+    }
+    private void requestNotificationPermission(){
+        if(checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)==PackageManager.PERMISSION_GRANTED){Toast.makeText(this,"通知权限已开启",Toast.LENGTH_SHORT).show();return;}
+        if(!shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)&&prefsNotifiedDenied()){notificationSettings();return;}
+        requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},101);
+    }
+    private boolean prefsNotifiedDenied(){return getSharedPreferences("companion",0).getBoolean("notificationDenied",false);}
+    private void notificationSettings(){
+        try{startActivity(new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE,getPackageName()));}
+        catch(Exception e){Toast.makeText(this,"请在系统设置中允许本应用发送通知",Toast.LENGTH_LONG).show();}
+    }
     private void backgroundSettings(){
         PowerManager p=getSystemService(PowerManager.class);
         if(!p.isIgnoringBatteryOptimizations(getPackageName()))startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,Uri.parse("package:"+getPackageName())));
@@ -125,7 +162,16 @@ public final class MainActivity extends Activity {
         if(checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){pendingStart=true;requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},100);}else startCompanion();
     }
     private void startCompanion(){try{startForegroundService(new Intent(this,PetService.class).setAction(PetService.START));}catch(Exception e){Toast.makeText(this,"开启失败："+e.getMessage(),Toast.LENGTH_LONG).show();}}
-    @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==100&&pendingStart){pendingStart=false;if(g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED)startCompanion();else Toast.makeText(this,"请允许通知，以便随时停止陪伴",Toast.LENGTH_LONG).show();}}
+    @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){
+        super.onRequestPermissionsResult(r,p,g);
+        if(r==101){
+            boolean granted=g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED;
+            getSharedPreferences("companion",0).edit().putBoolean("notificationDenied",!granted).apply();
+            Toast.makeText(this,granted?"通知已开启":"通知未开启，消息会留在应用内",Toast.LENGTH_LONG).show();
+            return;
+        }
+        if(r==100&&pendingStart){pendingStart=false;if(g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED)startCompanion();else Toast.makeText(this,"请允许通知，以便随时停止陪伴",Toast.LENGTH_LONG).show();}
+    }
     @Override protected void onResume(){super.onResume();if(web!=null){web.resumeTimers();web.onResume();web.evaluateJavascript("window.dispatchEvent(new Event('neo-resume'))",null);}}
     @Override protected void onPause(){if(web!=null){web.evaluateJavascript("window.dispatchEvent(new Event('neo-background'))",null);web.onPause();web.pauseTimers();}try{PetStore.save(this);}catch(Exception ignored){}super.onPause();}
     @Override protected void onDestroy(){if(web!=null){web.removeJavascriptInterface("NeoNative");web.destroy();}main.removeCallbacksAndMessages(null);super.onDestroy();}

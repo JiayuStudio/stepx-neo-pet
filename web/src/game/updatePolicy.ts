@@ -26,6 +26,10 @@ const RELEASE_TAG_PATH = /^\/releases\/tag\/(v?\d+\.\d+\.\d+)$/
 const RELEASE_DOWNLOAD_PATH = /^\/releases\/download\/(v?\d+\.\d+\.\d+)\/diandian-native-(\d+)\.(\d+)\.(\d+)\.apk$/
 const HTML_PATH_PREFIX = '/releases/tag/'
 const DOWNLOAD_PATH_PREFIX = '/releases/download/'
+/** 单次更新检查的总时限。原生 UpdateChecker.TIMEOUT_MS 必须与此一致；
+ *  UI 另加 UPDATE_UI_GRACE_MS 宽限，保证原生请求总是先结束。 */
+export const UPDATE_REQUEST_TIMEOUT_MS = 12_000
+export const UPDATE_UI_GRACE_MS = 1_500
 export const FETCH_TIMEOUT_MS = 10_000
 
 export type UpdateState = 'checking' | 'latest' | 'newer' | 'error'

@@ -124,4 +124,69 @@ check(state.character==='star','unknown character migrates to star');
 check(state.needs.health===77,'legacy migration never lowers health');
 check(throws(function(){act('setCharacter',['pikachu']);}),'non-original character id rejected');
 
-function testResult(){return JSON.stringify({passed:checks,engine:'Rhino/headless Mori',upstreamModules:6});}
+/* ---- 0.3.9 生命周期 / 消息账本 / 勿扰：真实引擎行为回归 ---- */
+var DAY=86400000;
+boot({hatched:true,egg:null,lifeMode:'cycle',lifeStartedAt:now-61*DAY,needs:{hunger:70,joy:70,hygiene:70,energy:70,health:70}});
+act('tick');
+check(state.farewellAt!==null,'cycle mode says farewell at 60+ days');
+check(state.memorials.length===1,'farewell writes exactly one memorial');
+check(state.messages.some(function(m){return m.kind==='farewell';}),'farewell produces a message');
+var frozenGrowth=state.growthPoints,frozenMemorials=state.memorials.length;
+act('care',['feed']);
+check(state.growthPoints===frozenGrowth,'care after farewell earns no growth');
+check(state.memorials.length===frozenMemorials,'care after farewell does not duplicate memorials');
+act('setLifeMode',['gentle']);
+check(state.farewellAt!==null,'switching mode cannot revive a farewelled pet');
+act('completeActivity',['star-catch',10]);
+check(state.growthPoints===frozenGrowth,'mini game after farewell earns no growth');
+var memorialId=state.memorials[0].id;
+act('adoptAgain');
+check(state.farewellAt===null,'adoptAgain starts a new companion');
+check(state.memorials.length===1&&state.memorials[0].id===memorialId,'adoptAgain keeps the memorial without duplicating it');
+
+/* 温柔模式：低健康也不会告别 */
+boot({hatched:true,egg:null,lifeMode:'gentle',needs:{hunger:0,joy:0,hygiene:0,energy:0,health:0}});
+now+=5*DAY;act('tick');
+check(state.farewellAt===null,'gentle mode never farewells even at zero health');
+
+/* 消息账本：同一事件只记一次，清空后不重放 */
+boot({hatched:true,egg:null,needs:{hunger:10,joy:70,hygiene:70,energy:70,health:70}});
+act('tick');
+var careMessages=state.messages.filter(function(m){return m.kind==='care';}).length;
+check(careMessages===1,'care message recorded once');
+var ledgerSize=state.messageLedger.length;
+act('tick');
+check(state.messages.filter(function(m){return m.kind==='care';}).length===1,'repeated tick does not add the same event');
+act('clearMessages');
+check(state.messages.length===0,'messages can be cleared');
+act('tick');
+check(state.messages.length===0,'cleared messages are not replayed');
+check(state.messageLedger.length===ledgerSize,'ledger survives clearing');
+check(state.messageLedger.length>0,'ledger recorded the event');
+
+/* 勿扰期间的事件标记为已处理，之后不补发 */
+boot({hatched:true,egg:null,needs:{hunger:10,joy:70,hygiene:70,energy:70,health:70},
+      notify:{enabled:true,vibrate:false,frequency:'low',sentCount:0,windowStartedAt:0,lastSentAt:null},
+      quiet:{manual:true,schedule:false,startMinute:1320,endMinute:480,weekdaysOnly:false}});
+act('tick');
+var quietTake=act('takeNotification',[now,false]).result;
+check(quietTake.ok===false,'quiet blocks the notification');
+check(state.lastNotifiedMessageId!==null,'blocked message is marked handled');
+act('setQuiet',[{manual:false}]);
+var afterQuiet=act('takeNotification',[now,false]).result;
+check(afterQuiet.ok===false,'quiet-period message is not sent later');
+
+/* 正常发送占用一次配额；用户主动操作不经过通知 */
+boot({hatched:true,egg:null,needs:{hunger:10,joy:70,hygiene:70,energy:70,health:70},
+      notify:{enabled:true,vibrate:false,frequency:'low',sentCount:0,windowStartedAt:0,lastSentAt:null},
+      quiet:{manual:false,schedule:false,startMinute:1320,endMinute:480,weekdaysOnly:false}});
+act('tick');
+var firstTake=act('takeNotification',[now,false]).result;
+check(firstTake.ok===true,'first notification allowed');
+check(state.notify.sentCount===0,'preparing or failing to post does not consume allowance');
+act('recordNotification',[now]);
+check(state.notify.sentCount===1,'sent count persisted in snapshot');
+var secondTake=act('takeNotification',[now,false]).result;
+check(secondTake.ok===false,'same message is not sent twice');
+
+function testResult(){return JSON.stringify({passed:checks,engine:'Rhino/headless Mori',upstreamModules:7});}

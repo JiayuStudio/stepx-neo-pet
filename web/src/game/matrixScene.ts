@@ -21,12 +21,12 @@ export interface ActionTracker {
   actionAt: number
 }
 
-/** 与 MoriMatrix.scene 一致：蛋阶段 → 死亡 → 照料 6 秒窗口 → 需求状态 */
+/** 与 MoriMatrix.scene 一致：蛋阶段 → 告别 → 照料 6 秒 → 消息 10 秒 → 需求状态 */
 export function selectScene(snapshot: GameSnapshot, now: number, tracker: ActionTracker): Scene {
   const phase = eggPhase(snapshot.egg, snapshot.hatched, now)
   if (phase === 'egg' || phase === 'crack' || phase === 'hatch') return phase
-  // 死亡按既有 health 零值显示（不新增离线必死、不删档）；恢复沿用原照料规则
-  if (snapshot.needs.health <= 0) return 'dead'
+  // 只有 farewellAt 表示自然告别；低健康在两种模式下都可通过照料恢复。
+  if (snapshot.farewellAt != null) return 'dead'
   // Track even null actions so the first real care action opens its window.
   if (snapshot.actionNonce !== tracker.lastNonce) {
     if (tracker.lastNonce >= 0) tracker.actionAt = now
@@ -35,6 +35,9 @@ export function selectScene(snapshot: GameSnapshot, now: number, tracker: Action
   if (snapshot.lastAction !== null && SCENE_BY_ACTION[snapshot.lastAction] && now - tracker.actionAt < 6000) {
     return SCENE_BY_ACTION[snapshot.lastAction]
   }
+  const message = snapshot.messages?.[0]
+  if (message && now >= message.at && now - message.at < 10_000 &&
+      ['idle','walk','eat','play','wash','sleep','pet','happy','hungry','unhappy','sick','dead'].includes(message.action)) return message.action as Scene
   const { health, energy, hunger, joy, hygiene } = snapshot.needs
   if (health < 30 || hygiene < 22) return 'sick'
   if (hunger < 28) return 'hungry'

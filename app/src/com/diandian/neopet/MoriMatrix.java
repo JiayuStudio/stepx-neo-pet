@@ -3,6 +3,8 @@ import org.json.*;
 
 /** Both screens present the same saved Mori appearance and mood. */
 final class MoriMatrix {
+    private static final java.util.Set<String> SCENE_ACTIONS=new java.util.HashSet<>(java.util.Arrays.asList(
+        "idle","walk","eat","play","wash","sleep","pet","happy","hungry","unhappy","sick","dead"));
     private int lastNonce=-1;
     private long actionAt;
     private String action="";
@@ -17,6 +19,8 @@ final class MoriMatrix {
             if(elapsed>=50000)return "crack";
             return "egg";
         }
+        // 已告别：固定显示告别姿态
+        if(pet.has("farewellAt")&&!pet.isNull("farewellAt"))return "dead";
         int nonce=pet.optInt("actionNonce");
         if(nonce!=lastNonce){if(lastNonce>=0){actionAt=now;action=pet.optString("lastAction");}lastNonce=nonce;}
         if(now-actionAt<6000){
@@ -28,8 +32,21 @@ final class MoriMatrix {
             if(action.equals("explore"))return "walk";
             if(action.equals("play")||action.equals("activity"))return "play";
         }
+        // 本地消息可触发短暂背屏动作（10 秒内，仅限已知场景）
+        JSONArray messages=pet.optJSONArray("messages");
+        if(messages!=null&&messages.length()>0){
+            JSONObject message=messages.optJSONObject(0);
+            if(message!=null){
+                long at=message.optLong("at",0);
+                if(at>0&&now>=at&&now-at<10000){
+                    String action=message.optString("action","");
+                    if(SCENE_ACTIONS.contains(action))return action;
+                }
+            }
+        }
         JSONObject needs=pet.optJSONObject("needs");
-        return MoriAppearance.scene(needs.optDouble("health"),needs.optDouble("energy"),needs.optDouble("hunger"),needs.optDouble("joy"),needs.optDouble("hygiene"));
+        boolean gentle=true; // Only farewellAt means death; low health remains treatable.
+        return MoriAppearance.scene(needs.optDouble("health"),needs.optDouble("energy"),needs.optDouble("hunger"),needs.optDouble("joy"),needs.optDouble("hygiene"),gentle);
     }
     private static final String[] CHARACTERS={"star","block","sprout","bunny","fox","otter","owl","drake"};
     String character(JSONObject pet){

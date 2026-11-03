@@ -3,12 +3,13 @@
   "commit": "4ffa9c3de87d58d6b962a4d2fcd12c3fa5250c23",
   "license": "MIT",
   "modules": {
-    "progression.ts": "aab8aa667b7181feae6eaeaa44efe16a8ec699a235692bfac7a5bea43399bef7",
-    "save.ts": "1ab304196ac616af4a3568826040182d9c31c0691fbd8fd2f921c1154ffd5f1f",
-    "store.ts": "71f98c5706540a40d064beea7839d39839bc0658a56df2b80a23e31ae9a2833b",
-    "stories.ts": "fac5186bfff86a3875a8326d544dc85f1f03d8a421b16f36a9bce2e18a806bdc",
     "transfer.ts": "1005a01b6264ba56dee72aea70754b536a7b50d260a631cdbe0f36d2d3b5d0b8",
-    "types.ts": "b44e553bd44e1eba6d664663a7de12becec7c9207de2d60e42c034901d5cd494"
+    "types.ts": "86a8356c325733f09d0e72f1165f2c094834f7cc9c77b56b6ef42115a7d1ecda",
+    "companion-life.ts": "7619f4cab6507688498b42ce99136f1c71b2cc4c87551ea8fe1eab5dc42b8fae",
+    "stories.ts": "fac5186bfff86a3875a8326d544dc85f1f03d8a421b16f36a9bce2e18a806bdc",
+    "progression.ts": "aab8aa667b7181feae6eaeaa44efe16a8ec699a235692bfac7a5bea43399bef7",
+    "store.ts": "6f17040d95bf6a9b88dba47d3ffebb09f478aa457ecaf0114e47f3283b448e81",
+    "save.ts": "5bce6441250bf6036c6b28bfb7bbf3cb9faf32fe4423a8e36c438aacbed227b5"
   },
-  "fork": "0.3.6 eight characters / 12 care states"
+  "fork": "0.3.9 lifecycle / messages / quiet / notifications"
 }

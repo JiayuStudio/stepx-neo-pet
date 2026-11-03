@@ -1,11 +1,11 @@
 {
   "name": "tamagochi",
   "private": true,
-  "version": "0.3.2",
+  "version": "0.3.9",
   "license": "MIT",
   "type": "module",
   "engines": {
-    "node": "22.x"
+    "node": ">=22.18.0 <25"
   },
   "scripts": {
     "dev": "vite",

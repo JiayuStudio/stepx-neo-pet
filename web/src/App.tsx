@@ -14,6 +14,7 @@ import { MatrixPreview } from './ui/MatrixPreview'
 import { PetDot } from './ui/PetDot'
 import { PETS } from '../../studio-art/pets'
 import { PocketVault } from './ui/PocketVault'
+import { CompanionSettings } from './ui/CompanionSettings'
 
 const PetScene = lazy(() => import('./scene/PetScene').then((module) => ({ default: module.PetScene })))
 
@@ -354,7 +355,7 @@ export default function App() {
         </div>
       </header>
 
-      <nav className="pocket-nav" aria-label="主要导航"><a href="#home">宠物</a><a href="#care-panel">照料</a><a href="#growth-title">成长</a><a href="#activity-title">小游戏</a><a href="#vault-title">存档</a></nav>
+      <nav className="pocket-nav" aria-label="主要导航"><a href="#home">宠物</a><a href="#care-panel">照料</a><a href="#growth-title">成长</a><a href="#activity-title">小游戏</a><a href="#vault-title">存档</a><a href="#companion-settings-title">陪伴</a></nav>
 
       {returnBrief && returnAction && returnNeed && (
         <section className="return-brief" aria-labelledby="return-brief-title" aria-live="polite">
@@ -382,7 +383,7 @@ export default function App() {
         <section className="hero-copy" aria-labelledby="pet-title">
           <p className="eyebrow">{growthStage.name.toUpperCase()} · {({gentle:'温柔',playful:'活泼',curious:'好奇'})[personality]}性格</p>
           <h1 id="pet-title">你好，<br /><em>{game.petName}.</em></h1>
-          <p className="hero-note">一只会记住你如何照顾它的小生命。</p>
+          <p className="hero-note">{game.farewellAt !== null ? "它把陪伴留在了纪念里。你可以回看，也可以迎接新的小生命。" : "一只会记住你如何照顾它的小生命。"}</p>
         </section>
 
         {/* 背屏预览优先：独立纵向 17:23 屏框（点阵核心布局，旧横向 3D 容器不再约束它） */}
@@ -399,7 +400,7 @@ export default function App() {
                 <span>年龄 {ageLabel}</span>
               </div>
               <div ref={sceneWrapRef} className="scene-wrap matrix-scene-secondary">
-                {game.character === 'star' || game.character === 'block' ? (
+                {game.farewellAt !== null ? <div className="scene-loading">一起走过的日子，都在纪念里。♡</div> : game.character === 'star' || game.character === 'block' ? (
                 <Suspense fallback={<div className="scene-loading">正在醒来……</div>}>
                   <PetScene
                     theme={theme}
@@ -422,7 +423,7 @@ export default function App() {
                 ) : (
                   <MatrixPreview snapshot={game} cell={6} onSoothe={game.sootheEgg} />
                 )}
-                <button className="scene-play-button" onClick={() => care('play')}>和它玩</button>
+                <button disabled={game.farewellAt !== null} className="scene-play-button" onClick={() => care('play')}>和它玩</button>
                 {activeAction && actionFeedback && (
                   <div key={`action-${game.actionNonce}`} className={`action-feedback action-feedback-${activeAction}`} role="status" aria-live="polite">
                     <i className="action-feedback-burst" aria-hidden="true" />
@@ -438,7 +439,7 @@ export default function App() {
                 <span>{moodCopy[1]}</span>
               </div>
             </div>
-            <div className="hardware-controls" aria-label="Quick care controls">
+            <div inert={game.farewellAt !== null} className="hardware-controls" aria-label="Quick care controls">
               {ACTIONS.slice(0, 3).map((action) => (
                 <button key={action.id} onClick={() => care(action.id)} aria-label={action.label}>{action.icon}</button>
               ))}
@@ -446,7 +447,7 @@ export default function App() {
           </div>
         </section>
 
-        <aside id="care-panel" className="care-panel" aria-label="Pet care panel">
+        <aside inert={game.farewellAt !== null} id="care-panel" className="care-panel" aria-label="Pet care panel">
           <div className="panel-heading">
             <div><p className="eyebrow">今天的状态</p><h2>{moodCopy[0]}</h2></div>
             <span className={`mood-orb mood-${mood}`} aria-hidden="true" />
@@ -512,8 +513,8 @@ export default function App() {
         <div key={game.actionNonce} className="reply-toast" role="status"><span>{noticeLabel}</span>{feedback(game.lastReply, game.petName)}</div>
       )}
 
-      <GrowthStudio />
-      <ActivityArcade />
+      <div inert={game.farewellAt !== null}><GrowthStudio /></div>
+      {game.farewellAt === null ? <ActivityArcade /> : <section id="activity-title" className="settings-card"><p>小伙伴已告别，小游戏暂时休息。相处记录保存在纪念里。</p></section>}
 
       <section className="theme-section" aria-labelledby="theme-title">
         <div className="section-lead">
@@ -539,6 +540,7 @@ export default function App() {
       </section>
 
       <PocketVault />
+      <CompanionSettings game={game} />
       <NeoUpdate />
 
       <footer>

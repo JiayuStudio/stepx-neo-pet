@@ -4,7 +4,7 @@
 
 ![APP 图标](docs/app-icon.png)
 
-**当前版本：0.3.8** · [下载 APK](https://github.com/JiayuStudio/stepx-neo-pet/releases/tag/v0.3.8) · [更新记录](CHANGELOG.md) · [StepX Neo 研究所](https://github.com/JiayuStudio/stepx-neo-lab)
+**当前版本：0.3.9** · [下载 APK](https://github.com/JiayuStudio/stepx-neo-pet/releases/tag/v0.3.9) · [更新记录](CHANGELOG.md) · [StepX Neo 研究所](https://github.com/JiayuStudio/stepx-neo-lab)
 
 [![拓麻歌子宣传片](docs/promo-poster.png)](https://github.com/JiayuStudio/stepx-neo-pet/releases/download/v0.3.4/tamagochi-promo-60s.mp4)
 
@@ -18,15 +18,24 @@
 - 四个主题世界，JSON 存档导出与恢复。
 - 新领养从蛋开始，经历裂纹、破壳与幼体；已有存档可继续使用。
 - 星跃、方跃、芽灵、绒兔、焰狐、泡獭、眠鸮、角龙共8只原创宠物，可切换耳机。
-- 每只15种场景、每段8帧，共120段基础动画；成长、性格、饰品与耳机外观同步。饥饿、不开心、生病、死亡均有独立动画。
+- 每只15种场景、每段8帧，共120段基础动画；成长、性格、饰品与耳机外观同步。饥饿、不开心、生病、自然告别均有独立动画。低健康可通过照料恢复，不会因为离线或勿扰直接告别。
 - 手机导航避开状态栏，前台背屏预览与原生显示共用点阵数据。
 - 原生前台服务负责养成计时和背屏逐帧输出；离开正面页面后仍可运行。通知和 App 内均有停止入口。
+
+## 0.3.9 的陪伴方式
+
+- 默认「温柔陪伴」：幼年、成年、老年持续相伴，不会自然告别。另可确认开启「生命周期模式」，从开启时重新计龄，满 60 天自然告别；55 天起进入暮年。
+- 生病、饥饿、想念、成长与康复会产生本地消息和短暂背屏动作；告别后保留纪念，重新领养需确认。
+- 「陪伴」导航可直达勿扰和消息。手动勿扰、定时勿扰、仅工作日均可设置，支持跨午夜。默认夜间 22:00–08:00 静默；勿扰时背屏继续安静陪伴。
+- 主动通知和轻震动默认关闭。开启背屏陪伴后，原生服务按规则投递本机消息，无需推送服务器。低频每天最多 2 条、间隔 6 小时；普通每天最多 4 条、间隔 3 小时。遵守系统勿扰、静音和通知权限；被抑制的消息不补发。
+- 「测试提醒」只验证当前通知设置，不消耗消息额度；实际震动由系统通知渠道决定。
+- [隐私说明](PRIVACY.md)：游戏和消息本机计算；只有手动检查更新会访问 GitHub。
 
 ## 安装与开始陪伴
 
 适用于带有兼容背屏接口的 STEPX Neo，最低 Android 14。其他手机的点阵硬件不在支持范围内。
 
-1. 从 [v0.3.8 发布页](https://github.com/JiayuStudio/stepx-neo-pet/releases/tag/v0.3.8) 下载 `diandian-native-0.3.8.apk`，按 Android 提示安装。已有同签名原生版可覆盖升级；升级前可在“存档”导出备份。
+1. 从 [v0.3.9 发布页](https://github.com/JiayuStudio/stepx-neo-pet/releases/tag/v0.3.9) 下载 `diandian-native-0.3.9.apk`，按 Android 提示安装。已有同签名原生版可覆盖升级；升级前可在“存档”导出备份。
 2. 打开“拓麻歌子”，允许通知，点“开启背屏”。一次只运行一个背屏播放器。
 3. 打开“后台设置”，允许后台运行并关闭本应用的电池优化。
 4. 把背屏朝上或竖直放置，保持无遮挡，锁屏观察动作是否继续。
@@ -53,13 +62,11 @@ adb shell dumpsys activity freeze whiteRemove com.diandian.neopet
 
 ## 本版变化与验证
 
-0.3.8 修复黄色导航栏在首屏被设置面板推到中间的问题，导航移到标题栏下方并保持吸顶；检查更新移到页面底部、存档之后。移除多余的黄色安全区色块。界面采用暖纸色、彩色块、马克笔粗描边和硬阴影，保留八宠物、点阵动画、成长、饰品与耳机组合。修复回忆按钮的点击事件序列化问题。
+0.3.9 新增生命周期、消息中心、原生通知与勿扰；统一前后台存档和点阵状态。改进更新检查的 12 秒超时、重复点击与过期回调处理，补齐实际背屏暂停原因。GitHub 独立原生 APK 是正式安装包，Step Studio 保留可编辑源码与网页预览；平台网页壳不包含本项目的 Java 后台服务。
 
-APP 内“检查更新”读取本仓库最新正式 Release，比较版本并提供匹配的 APK 下载入口，不会自动安装。首版公开后及后续版本都会同步更新源与发布包。
+通过原生构建、Rhino 实际养成引擎回归、生命周期与跨午夜勿扰测试、更新控制器及策略测试、点阵资源检查和浏览器交互验证。测试使用可控时间模拟多日生命周期，不代表已持续运行 60 天。完整测试命令见下方与 `tools/`。
 
-本轮通过生产构建、原生构建、签名和更新策略检查。此前对八宠物120段动画做过结构检查，55,488帧逐像素比对通过；浏览器实际验证角色切换、六种照料、回忆打开/关闭、备份恢复，以及342px/390px布局。
-
-0.3.8 的真机背屏、锁屏持续刷新、覆盖安装和长期耗电仍待验证。旧版的真机结果不替代本版验收。
+0.3.8 曾完成同签名覆盖安装及锁屏持续动画实测。0.3.9 尚未连接 Neo 真机；本版覆盖升级、系统通知/震动、锁屏持续动画、长期耗电仍待实测，旧版结果不替代本版验收。
 
 ## 从源码构建
 
@@ -74,10 +81,16 @@ node tools/build-engine.mjs
 node tools/export-art.mjs
 node tools/test-art.mjs
 python3 tools/test-mori.py
-python3 tools/build.py
+node tools/test-lifecycle.ts
+node tools/test-update-controller.ts
+node tools/test-update.ts
+python3 tools/test-update.py
+python3 tools/test-scene.py
+node tools/test-display-parity.mjs
+python3 tools/build.py --unsigned
 ```
 
-APK 输出至 `artifacts/`。默认构建会在仓库旁的 `.private/diandian-android/` 生成自己的开发签名；自行构建的签名与发布 APK 不同，不能直接覆盖安装发布版。请先导出存档，或持续使用同一签名构建。发布签名可通过 `tools/build.py --release --keystore ... --ks-key-alias ... --ks-pass-env ...` 显式指定。
+APK 输出至 `artifacts/`。`--unsigned` 不生成签名。省略该参数的开发构建会在仓库旁的 `.private/diandian-android/` 生成自己的开发签名；自行构建的签名与发布 APK 不同，不能直接覆盖安装发布版。请先导出存档，或持续使用同一签名构建。发布签名可通过 `tools/build.py --release --keystore ... --ks-key-alias ... --ks-pass-env ...` 显式指定。
 
 | 路径 | 内容 |
 | --- | --- |

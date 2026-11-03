@@ -511,3 +511,31 @@ footer span { min-width: 0; }
 .neo-update-panel { margin: 20px 0 24px; padding: 18px; border: 3px solid var(--marker-ink); border-radius: var(--marker-radius); background: var(--marker-paper); box-shadow: var(--marker-shadow); }
 .neo-update-panel h2 { margin: 0 0 12px; font-size: 24px; }
 .neo-update-panel small { display: block; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+
+/* 0.3.9 陪伴设置 / 消息中心 / 生命周期 / 勿扰 / 通知 */
+.companion-settings { padding: 26px max(16px, var(--safe-left, 0px)) 26px max(16px, var(--safe-right, 0px)); border-top: 3px solid var(--marker-ink); background: color-mix(in srgb, var(--marker-green) 14%, var(--marker-paper)); }
+.companion-settings h2 { font-size: 26px; margin: 0 0 14px; }
+.settings-card { border: 3px solid var(--marker-ink); border-radius: var(--marker-radius); background: var(--marker-paper); box-shadow: var(--marker-shadow); padding: 16px; margin-bottom: 14px; }
+.settings-card h3 { margin: 0 0 8px; font-size: 17px; }
+.settings-note { margin: 6px 0; line-height: 1.55; }
+.settings-note.small { font-size: 12px; opacity: .78; }
+.settings-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.settings-row button { min-height: 44px; padding: 8px 14px; border: 3px solid var(--marker-ink); border-radius: var(--marker-radius-sm); background: var(--marker-paper); box-shadow: 3px 3px 0 var(--marker-ink); font-weight: 800; cursor: pointer; }
+.settings-row button.active { background: var(--marker-yellow); }
+.settings-row button:disabled { opacity: .5; cursor: not-allowed; }
+.settings-toggle { display: flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 6px; font-weight: 700; }
+.settings-toggle input { width: 20px; height: 20px; accent-color: #242321; }
+.settings-times label { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.settings-times input { min-height: 44px; padding: 6px 10px; border: 3px solid var(--marker-ink); border-radius: var(--marker-radius-sm); background: var(--marker-paper); font: inherit; }
+.link-button { border: 0; background: transparent; text-decoration: underline; min-height: 44px; font-weight: 800; cursor: pointer; }
+.memorial-list, .message-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.memorial-list li, .message-list li { border: 2px dashed var(--marker-ink); border-radius: var(--marker-radius-sm); padding: 8px 10px; display: grid; gap: 2px; background: color-mix(in srgb, var(--marker-pink) 18%, var(--marker-paper)); }
+.message-list li { background: color-mix(in srgb, var(--marker-blue) 18%, var(--marker-paper)); }
+.memorial-list span, .message-list small { font-size: 12px; opacity: .8; }
+.settings-overlay { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 18px; background: rgba(36, 35, 33, .55); }
+.settings-dialog { position: relative; width: min(680px, 100%); max-height: 88dvh; overflow: auto; border: 3px solid var(--marker-ink); border-radius: var(--marker-radius); background: var(--marker-paper); box-shadow: 10px 10px 0 var(--marker-ink); padding: 20px; color: var(--marker-ink); }
+.settings-dialog h2 { margin: 0 0 10px; }
+.settings-dialog h3 { margin: 14px 0 4px; font-size: 15px; }
+.neo-companion-reason { opacity: .85; }
+
+#companion-settings-title { scroll-margin-top: calc(var(--safe-top, 0px) + 80px); }

@@ -52,6 +52,329 @@ exports.getMood = getMood;
 
 };
 
+modules["companion-life"] = function(module, exports, require) {
+"use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+var __read = (this && this.__read) || function (o, n) {
+    var m = typeof Symbol === "function" && o[Symbol.iterator];
+    if (!m) return o;
+    var i = m.call(o), r, ar = [], e;
+    try {
+        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+    }
+    catch (error) { e = { error: error }; }
+    finally {
+        try {
+            if (r && !r.done && (m = i["return"])) m.call(i);
+        }
+        finally { if (e) throw e.error; }
+    }
+    return ar;
+};
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
+var __values = (this && this.__values) || function(o) {
+    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function () {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CYCLE_RHYTHM = exports.LIFE_RHYTHM = exports.needsAttention = exports.composeMessages = exports.mergeMessages = exports.MESSAGE_LEDGER_LIMIT = exports.MESSAGE_SCENE = exports.markNotificationSent = exports.canSendNotification = exports.rollNotifyWindow = exports.startOfLocalDay = exports.NOTIFY_LIMITS = exports.DEFAULT_NOTIFY = exports.quietKeepsCompanion = exports.quietStateAt = exports.inScheduledQuiet = exports.formatMinute = exports.clampMinute = exports.DEFAULT_QUIET = exports.pushMemorial = exports.lifeStageCopy = exports.lifeStartForMode = exports.shouldFarewell = exports.lifeStage = exports.lifeDays = exports.LIFE_FAREWELL_DAYS = exports.LIFE_TWILIGHT_DAYS = exports.LIFE_ADULT_DAYS = exports.LIFE_CHILD_DAYS = exports.HOUR_MS = exports.DAY_MS = void 0;
+exports.DAY_MS = 86400000;
+exports.HOUR_MS = 3600000;
+exports.LIFE_CHILD_DAYS = 3;
+exports.LIFE_ADULT_DAYS = 21;
+exports.LIFE_TWILIGHT_DAYS = 55;
+exports.LIFE_FAREWELL_DAYS = 60;
+var STAGE_COPY = {
+    child: { name: '幼年', note: '还在熟悉这个世界，多陪它说说话就很好。' },
+    adult: { name: '成年', note: '最自在的年纪，喜欢和你一起做点小事。' },
+    elder: { name: '老年', note: '步子慢下来了，安静待着也很舒服。' },
+    twilight: { name: '暮年', note: '它开始喜欢晒太阳和旧回忆，按自己的节奏就好。' },
+    farewell: { name: '告别后', note: '它把相处的日子留在了纪念里。' },
+};
+/** 相处天数：生命周期模式从选择时刻起算，其它模式按领养以来的真实时间 */
+var lifeDays = function (snapshot, now) {
+    if (snapshot.lifeMode === 'cycle' && snapshot.lifeStartedAt !== null) {
+        return Math.max(0, Math.floor((Math.max(now, snapshot.lifeStartedAt) - snapshot.lifeStartedAt) / exports.DAY_MS));
+    }
+    return Math.max(0, Math.floor((snapshot.ageMinutes * 60000) / exports.DAY_MS));
+};
+exports.lifeDays = lifeDays;
+/** 温情模式的阶段：幼年 → 成年 → 老年；不会告别 */
+var lifeStage = function (snapshot, now) {
+    if (snapshot.farewellAt !== null) {
+        var days_1 = (0, exports.lifeDays)(snapshot, snapshot.farewellAt);
+        return __assign({ stage: 'farewell', days: days_1 }, STAGE_COPY.farewell);
+    }
+    var days = (0, exports.lifeDays)(snapshot, now);
+    var cycle = snapshot.lifeMode === 'cycle';
+    if (days >= exports.LIFE_ADULT_DAYS) {
+        var stage = cycle && days >= exports.LIFE_TWILIGHT_DAYS ? 'twilight' : 'elder';
+        return __assign({ stage: stage, days: days }, STAGE_COPY[stage]);
+    }
+    if (days >= exports.LIFE_CHILD_DAYS)
+        return __assign({ stage: 'adult', days: days }, STAGE_COPY.adult);
+    return __assign({ stage: 'child', days: days }, STAGE_COPY.child);
+};
+exports.lifeStage = lifeStage;
+/** 是否到了自然告别的时刻（仅生命周期模式，且必须已过完整告别门槛） */
+var shouldFarewell = function (snapshot, now) { return (snapshot.hatched
+    && snapshot.lifeMode === 'cycle'
+    && snapshot.farewellAt === null
+    && snapshot.lifeStartedAt !== null
+    && now - snapshot.lifeStartedAt >= exports.LIFE_FAREWELL_DAYS * exports.DAY_MS); };
+exports.shouldFarewell = shouldFarewell;
+/** 切换生命周期模式时的年龄起点：进入 cycle 一律从此刻重新起算，不用旧档年龄判死 */
+var lifeStartForMode = function (mode, now) { return (mode === 'cycle' ? now : null); };
+exports.lifeStartForMode = lifeStartForMode;
+var lifeStageCopy = function (stage) { return STAGE_COPY[stage]; };
+exports.lifeStageCopy = lifeStageCopy;
+var pushMemorial = function (existing, entry) { return (__spreadArray([entry], __read(existing.filter(function (item) { return item.id !== entry.id; })), false)); };
+exports.pushMemorial = pushMemorial;
+exports.DEFAULT_QUIET = {
+    manual: false,
+    schedule: true,
+    startMinute: 22 * 60,
+    endMinute: 8 * 60,
+    weekdaysOnly: false,
+};
+var clampMinute = function (value, fallback) {
+    var number = typeof value === 'number' && Number.isFinite(value) ? Math.floor(value) : fallback;
+    return Math.max(0, Math.min(1439, number));
+};
+exports.clampMinute = clampMinute;
+var formatMinute = function (minute) {
+    var hour = Math.floor(minute / 60) % 24;
+    var rest = minute % 60;
+    return "".concat(String(hour).padStart(2, '0'), ":").concat(String(rest).padStart(2, '0'));
+};
+exports.formatMinute = formatMinute;
+var localParts = function (timestamp) {
+    var date = new Date(timestamp);
+    return {
+        minute: date.getHours() * 60 + date.getMinutes(),
+        weekday: date.getDay(),
+        dayKey: "".concat(date.getFullYear(), "-").concat(String(date.getMonth() + 1).padStart(2, '0'), "-").concat(String(date.getDate()).padStart(2, '0')),
+    };
+};
+/** 定时窗口：跨午夜用两段区间表示 */
+var isWeekday = function (weekday) { return weekday >= 1 && weekday <= 5; };
+/** 定时勿扰窗口。
+ *  - 起止相同视为「全天勿扰」（开启即整段静默），避免含糊的保存结果；
+ *  - 跨午夜窗口归属**开始日**：周五 22:00–周六 08:00 算工作日，
+ *    周日 22:00 不生效、周一 00:00 也不生效（归周日）。 */
+var inScheduledQuiet = function (quiet, timestamp) {
+    if (!quiet.schedule)
+        return false;
+    var _a = localParts(timestamp), minute = _a.minute, weekday = _a.weekday;
+    if (quiet.startMinute === quiet.endMinute) {
+        return !quiet.weekdaysOnly || isWeekday(weekday);
+    }
+    if (quiet.startMinute < quiet.endMinute) {
+        if (quiet.weekdaysOnly && !isWeekday(weekday))
+            return false;
+        return minute >= quiet.startMinute && minute < quiet.endMinute;
+    }
+    if (minute >= quiet.startMinute)
+        return !quiet.weekdaysOnly || isWeekday(weekday);
+    if (minute < quiet.endMinute) {
+        // 这段属于前一天开启的窗口：工作日判定看开始日
+        var startWeekday = (weekday + 6) % 7;
+        return !quiet.weekdaysOnly || isWeekday(startWeekday);
+    }
+    return false;
+};
+exports.inScheduledQuiet = inScheduledQuiet;
+var quietStateAt = function (quiet, timestamp) {
+    if (quiet.manual)
+        return { quiet: true, reason: '已开启一键勿扰' };
+    if ((0, exports.inScheduledQuiet)(quiet, timestamp)) {
+        return {
+            quiet: true,
+            reason: quiet.startMinute === quiet.endMinute
+                ? "\u5168\u5929\u52FF\u6270".concat(quiet.weekdaysOnly ? '（仅工作日）' : '')
+                : "\u5B9A\u65F6\u52FF\u6270 ".concat((0, exports.formatMinute)(quiet.startMinute), "\u2013").concat((0, exports.formatMinute)(quiet.endMinute)).concat(quiet.weekdaysOnly ? '（仅工作日）' : ''),
+        };
+    }
+    if (quiet.schedule) {
+        return {
+            quiet: false,
+            reason: quiet.startMinute === quiet.endMinute
+                ? "\u5168\u5929\u52FF\u6270\u672A\u751F\u6548".concat(quiet.weekdaysOnly ? '（仅工作日）' : '')
+                : "\u5B9A\u65F6\u52FF\u6270\u672A\u751F\u6548 \u00B7 ".concat((0, exports.formatMinute)(quiet.startMinute), "\u2013").concat((0, exports.formatMinute)(quiet.endMinute)).concat(quiet.weekdaysOnly ? '（仅工作日）' : ''),
+        };
+    }
+    return { quiet: false, reason: '未开启勿扰' };
+};
+exports.quietStateAt = quietStateAt;
+/** 勿扰只让通知安静，不停止背屏陪伴 */
+exports.quietKeepsCompanion = true;
+exports.DEFAULT_NOTIFY = {
+    enabled: false,
+    vibrate: false,
+    frequency: 'low',
+    sentCount: 0,
+    windowStartedAt: 0,
+    lastSentAt: null,
+};
+exports.NOTIFY_LIMITS = {
+    low: { max: 2, gapMs: 6 * exports.HOUR_MS, label: '低频：每天最多 2 条，间隔至少 6 小时' },
+    normal: { max: 4, gapMs: 3 * exports.HOUR_MS, label: '普通：每天最多 4 条，间隔至少 3 小时' },
+};
+var startOfLocalDay = function (timestamp) {
+    var date = new Date(timestamp);
+    date.setHours(0, 0, 0, 0);
+    return date.getTime();
+};
+exports.startOfLocalDay = startOfLocalDay;
+/** 把计数窗口推进到「今天」；跨重启 / 跨天都能自愈 */
+var rollNotifyWindow = function (notify, now) {
+    var today = (0, exports.startOfLocalDay)(now);
+    if (notify.windowStartedAt >= today && notify.windowStartedAt <= now)
+        return notify;
+    return __assign(__assign({}, notify), { sentCount: 0, windowStartedAt: today });
+};
+exports.rollNotifyWindow = rollNotifyWindow;
+/** 判断现在是否允许主动发一条通知。用户主动操作不经过这里，因此不占限额。 */
+var canSendNotification = function (notify, quiet, now, systemQuiet) {
+    var settings = (0, exports.rollNotifyWindow)(notify, now);
+    if (!settings.enabled)
+        return { ok: false, reason: '未开启主动通知', settings: settings };
+    if (systemQuiet)
+        return { ok: false, reason: '系统勿扰中，消息留在应用内', settings: settings };
+    var quietNow = (0, exports.quietStateAt)(quiet, now);
+    if (quietNow.quiet)
+        return { ok: false, reason: "".concat(quietNow.reason, "\uFF0C\u6D88\u606F\u7559\u5728\u5E94\u7528\u5185"), settings: settings };
+    var limit = exports.NOTIFY_LIMITS[settings.frequency];
+    if (settings.sentCount >= limit.max)
+        return { ok: false, reason: "\u4ECA\u5929\u5DF2\u53D1\u9001 ".concat(settings.sentCount, " \u6761\uFF0C\u8FBE\u5230\u4E0A\u9650"), settings: settings };
+    if (settings.lastSentAt !== null && now - settings.lastSentAt < limit.gapMs) {
+        return { ok: false, reason: '距离上一条通知还不到最小间隔', settings: settings };
+    }
+    return { ok: true, reason: '可以发送', settings: settings };
+};
+exports.canSendNotification = canSendNotification;
+var markNotificationSent = function (settings, now) { return (__assign(__assign({}, (0, exports.rollNotifyWindow)(settings, now)), { sentCount: (0, exports.rollNotifyWindow)(settings, now).sentCount + 1, lastSentAt: now })); };
+exports.markNotificationSent = markNotificationSent;
+exports.MESSAGE_SCENE = {
+    morning: 'happy',
+    night: 'sleep',
+    miss: 'pet',
+    care: 'unhappy',
+    recover: 'happy',
+    growth: 'happy',
+    farewell: 'dead',
+    idle: 'idle',
+};
+var messageDayKey = function (timestamp) { return localParts(timestamp).dayKey; };
+/** 消息账本上限：足够覆盖近期事件，同时避免存档膨胀 */
+exports.MESSAGE_LEDGER_LIMIT = 80;
+/**
+ * 事件只记录一次：同 id 的新事件不会覆盖旧时间戳，也不会在清空消息列表后重放。
+ * ledger 是持久化的「已产生事件 id」，messages 只是展示用的近期记录。
+ */
+var mergeMessages = function (existing, incoming, ledger) {
+    var e_1, _a;
+    var seen = new Set(ledger);
+    var added = [];
+    try {
+        for (var incoming_1 = __values(incoming), incoming_1_1 = incoming_1.next(); !incoming_1_1.done; incoming_1_1 = incoming_1.next()) {
+            var item = incoming_1_1.value;
+            if (seen.has(item.id))
+                continue;
+            seen.add(item.id);
+            added.push(item);
+        }
+    }
+    catch (e_1_1) { e_1 = { error: e_1_1 }; }
+    finally {
+        try {
+            if (incoming_1_1 && !incoming_1_1.done && (_a = incoming_1.return)) _a.call(incoming_1);
+        }
+        finally { if (e_1) throw e_1.error; }
+    }
+    var messages = __spreadArray(__spreadArray([], __read(added), false), __read(existing), false).filter(function (item, index, list) { return list.findIndex(function (other) { return other.id === item.id; }) === index; })
+        .sort(function (a, b) { return b.at - a.at; })
+        .slice(0, 20);
+    var nextLedger = __spreadArray(__spreadArray([], __read(added.map(function (item) { return item.id; })), false), __read(ledger), false).slice(0, exports.MESSAGE_LEDGER_LIMIT);
+    return { messages: messages, ledger: nextLedger, added: added };
+};
+exports.mergeMessages = mergeMessages;
+/** 由状态推导消息：同一天同一类只产生一条 */
+var composeMessages = function (context) {
+    var previous = context.previous, next = context.next, now = context.now, stageChanged = context.stageChanged, stageName = context.stageName;
+    var day = messageDayKey(now);
+    var hour = new Date(now).getHours();
+    var out = [];
+    var add = function (kind, text, action) {
+        if (action === void 0) { action = exports.MESSAGE_SCENE[kind]; }
+        return out.push({ id: "".concat(kind, ":").concat(day), kind: kind, at: now, text: text, action: action });
+    };
+    if (next.farewellAt !== null) {
+        if (previous.farewellAt === null)
+            add('farewell', '它安静地睡着了。相处的日子都留在纪念里。');
+        return out;
+    }
+    if (!previous.hatched)
+        return out;
+    if (hour >= 6 && hour < 11)
+        add('morning', '早安呀，今天也一起慢慢过。');
+    if (hour >= 21)
+        add('night', '夜深了，我把灯调暗一点，陪你到困为止。');
+    // 想念看的是「上次互动」，不是每秒推进的 lastUpdated
+    var away = Math.max(0, now - previous.lastInteractionAt);
+    if (away >= 6 * exports.HOUR_MS)
+        add('miss', '有一阵子没见到你了，我一直在这里等你。');
+    var needs = next.needs;
+    if (needs.health < 30)
+        add('care', '今天有点不舒服，安静陪一会儿就好。', 'sick');
+    else if (needs.hunger < 24)
+        add('care', '肚子在轻轻叫，想吃点东西。', 'hungry');
+    else if (needs.hygiene < 20)
+        add('care', '身上有点黏糊糊的，想洗个泡泡澡。');
+    else if (needs.energy < 20)
+        add('care', '眼皮有点沉，想靠着你打个盹。', 'sleep');
+    if (previous.healthBand === 'low' && next.healthBand === 'ok')
+        add('recover', '感觉好多了，谢谢你一直照顾我。');
+    if (stageChanged)
+        add('growth', "\u4ECA\u5929\u662F\u65B0\u7684\u9636\u6BB5\uFF1A".concat(stageName, "\u3002\u6211\u4EEC\u4E00\u8D77\u7EE7\u7EED\u8D70\u5427\u3002"));
+    var priority = ['farewell', 'recover', 'growth', 'care', 'miss', 'morning', 'night', 'idle'];
+    return out.sort(function (a, b) { return priority.indexOf(a.kind) - priority.indexOf(b.kind); });
+};
+exports.composeMessages = composeMessages;
+/** 当前是否处于「需要照料」的明显状态（用于状态显示，不产生内疚文案） */
+var needsAttention = function (needs) { return (needs.health < 30 || needs.hunger < 24 || needs.hygiene < 20 || needs.energy < 20 || needs.joy < 24); };
+exports.needsAttention = needsAttention;
+/** 成长期望节奏说明（设置页展示） */
+exports.LIFE_RHYTHM = "\u5E7C\u5E74 0\u2013".concat(exports.LIFE_CHILD_DAYS, " \u5929 \u00B7 \u6210\u5E74 ").concat(exports.LIFE_CHILD_DAYS, "\u2013").concat(exports.LIFE_ADULT_DAYS, " \u5929 \u00B7 \u8001\u5E74 ").concat(exports.LIFE_ADULT_DAYS, " \u5929\u8D77");
+exports.CYCLE_RHYTHM = "\u751F\u547D\u5468\u671F\u6A21\u5F0F\uFF1A".concat(exports.LIFE_TWILIGHT_DAYS, " \u5929\u8D77\u8FDB\u5165\u66AE\u5E74\uFF0C").concat(exports.LIFE_FAREWELL_DAYS, " \u5929\u81EA\u7136\u544A\u522B");
+
+};
+
 modules["progression"] = function(module, exports, require) {
 "use strict";
 var __assign = (this && this.__assign) || function () {
@@ -336,6 +659,28 @@ exports.isStoryUnlocked = isStoryUnlocked;
 
 modules["save"] = function(module, exports, require) {
 "use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+var __values = (this && this.__values) || function(o) {
+    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function () {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+};
 var __read = (this && this.__read) || function (o, n) {
     var m = typeof Symbol === "function" && o[Symbol.iterator];
     if (!m) return o;
@@ -365,6 +710,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.normalizeSnapshot = exports.freshSnapshot = void 0;
 var progression_1 = require("./progression");
 var stories_1 = require("./stories");
+var companion_life_1 = require("./companion-life");
 var MODES = ['cozy', 'classic'];
 var THEMES = ['sakura', 'cyber', 'moss', 'moon'];
 var MINI_GAMES = ['star-catch', 'memory-flip'];
@@ -421,9 +767,77 @@ var freshSnapshot = function (now) {
         ownedItemIds: [],
         equippedWearable: null,
         equippedRoomItem: null,
+        lifeMode: 'gentle',
+        lifeStartedAt: null,
+        farewellAt: null,
+        messages: [],
+        lastStage: null,
+        healthBand: 'ok',
+        quiet: __assign({}, companion_life_1.DEFAULT_QUIET),
+        notify: __assign({}, companion_life_1.DEFAULT_NOTIFY),
+        lastMessageDay: null,
+        memorials: [],
+        lastNotifiedMessageId: null,
+        lastInteractionAt: now,
+        messageLedger: [],
     });
 };
 exports.freshSnapshot = freshSnapshot;
+var normalizeQuiet = function (value) {
+    var source = isRecord(value) ? value : {};
+    return {
+        manual: source.manual === true,
+        schedule: typeof source.schedule === 'boolean' ? source.schedule : companion_life_1.DEFAULT_QUIET.schedule,
+        startMinute: (0, companion_life_1.clampMinute)(source.startMinute, companion_life_1.DEFAULT_QUIET.startMinute),
+        endMinute: (0, companion_life_1.clampMinute)(source.endMinute, companion_life_1.DEFAULT_QUIET.endMinute),
+        weekdaysOnly: source.weekdaysOnly === true,
+    };
+};
+var normalizeNotify = function (value, now) {
+    var source = isRecord(value) ? value : {};
+    var frequency = source.frequency === 'normal' ? 'normal' : 'low';
+    var sentCount = integer(source.sentCount, 0, 0, 1000);
+    var windowStartedAt = finite(source.windowStartedAt, 0);
+    var lastSentAt = finite(source.lastSentAt, Number.NaN);
+    return {
+        enabled: source.enabled === true,
+        vibrate: source.vibrate === true,
+        frequency: frequency,
+        sentCount: sentCount,
+        windowStartedAt: windowStartedAt > 0 && windowStartedAt <= now ? windowStartedAt : 0,
+        lastSentAt: Number.isFinite(lastSentAt) && lastSentAt > 0 && lastSentAt <= now ? lastSentAt : null,
+    };
+};
+var MESSAGE_KINDS = ['morning', 'night', 'miss', 'care', 'recover', 'growth', 'farewell', 'idle'];
+var normalizeMessages = function (value, now) {
+    var e_1, _a;
+    if (!Array.isArray(value))
+        return [];
+    var out = [];
+    try {
+        for (var _b = __values(value.slice(0, 30)), _c = _b.next(); !_c.done; _c = _b.next()) {
+            var item = _c.value;
+            if (!isRecord(item))
+                continue;
+            var kind = MESSAGE_KINDS.includes(item.kind) ? item.kind : null;
+            var at = finite(item.at, Number.NaN);
+            var text = typeof item.text === 'string' ? item.text.slice(0, 160) : '';
+            var id = typeof item.id === 'string' ? item.id.slice(0, 80) : null;
+            if (!kind || !id || !text || !Number.isFinite(at) || at < 0 || at > now)
+                continue;
+            var action = typeof item.action === 'string' ? item.action.slice(0, 20) : 'idle';
+            out.push({ id: id, kind: kind, at: at, text: text, action: action });
+        }
+    }
+    catch (e_1_1) { e_1 = { error: e_1_1 }; }
+    finally {
+        try {
+            if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+        }
+        finally { if (e_1) throw e_1.error; }
+    }
+    return out.slice(0, 20);
+};
 var normalizeNeeds = function (value, fallback) {
     var needs = isRecord(value) ? value : {};
     return {
@@ -468,6 +882,44 @@ var normalizeEquipment = function (value, owned, category) {
     if (!(0, progression_1.isKeepsakeId)(value) || !owned.includes(value))
         return null;
     return progression_1.KEEPSAKE_BY_ID[value].category === category ? value : null;
+};
+var normalizeMemorials = function (value, now) {
+    var e_2, _a;
+    if (!Array.isArray(value))
+        return [];
+    var out = [];
+    try {
+        for (var value_1 = __values(value), value_1_1 = value_1.next(); !value_1_1.done; value_1_1 = value_1.next()) {
+            var item = value_1_1.value;
+            if (!isRecord(item))
+                continue;
+            var at = finite(item.at, Number.NaN);
+            var id = typeof item.id === 'string' ? item.id.slice(0, 80) : null;
+            var petName = typeof item.petName === 'string' ? item.petName.slice(0, 30) : '';
+            var character = typeof item.character === 'string' ? item.character.slice(0, 20) : 'star';
+            if (!id || !petName || !Number.isFinite(at) || at < 0 || at > now)
+                continue;
+            out.push({
+                id: id,
+                at: at,
+                petName: petName,
+                character: character,
+                days: integer(item.days, 0, 0, 100000),
+                bond: integer(item.bond, 0, 0, 100),
+                growthPoints: integer(item.growthPoints, 0, 0, 100000),
+                storyIndex: integer(item.storyIndex, 0, 0, stories_1.STORY_COUNT),
+                reason: item.reason === 'rehomed' ? 'rehomed' : 'farewell',
+            });
+        }
+    }
+    catch (e_2_1) { e_2 = { error: e_2_1 }; }
+    finally {
+        try {
+            if (value_1_1 && !value_1_1.done && (_a = value_1.return)) _a.call(value_1);
+        }
+        finally { if (e_2) throw e_2.error; }
+    }
+    return out;
 };
 var normalizeSnapshot = function (value, now) {
     if (now === void 0) { now = Date.now(); }
@@ -548,6 +1000,26 @@ var normalizeSnapshot = function (value, now) {
         ownedItemIds: ownedItemIds,
         equippedWearable: normalizeEquipment(source.equippedWearable, ownedItemIds, 'wearable'),
         equippedRoomItem: normalizeEquipment(source.equippedRoomItem, ownedItemIds, 'room'),
+        // 0.3.9：旧存档一律进入温柔陪伴；生命周期模式必须由用户主动选择（lifeStartedAt 只在切换时建立）
+        lifeMode: source.lifeMode === 'cycle' ? 'cycle' : 'gentle',
+        lifeStartedAt: source.lifeMode === 'cycle' && Number.isFinite(finite(source.lifeStartedAt, Number.NaN))
+            ? validTimestamp(source.lifeStartedAt, now, now)
+            : null,
+        farewellAt: Number.isFinite(finite(source.farewellAt, Number.NaN))
+            ? validTimestamp(source.farewellAt, now, now)
+            : null,
+        messages: normalizeMessages(source.messages, now),
+        lastStage: typeof source.lastStage === 'string' ? source.lastStage.slice(0, 20) : null,
+        healthBand: source.healthBand === 'low' ? 'low' : 'ok',
+        quiet: normalizeQuiet(source.quiet),
+        notify: normalizeNotify(source.notify, now),
+        lastMessageDay: typeof source.lastMessageDay === 'string' ? source.lastMessageDay.slice(0, 20) : null,
+        memorials: normalizeMemorials(source.memorials, now),
+        lastNotifiedMessageId: typeof source.lastNotifiedMessageId === 'string' ? source.lastNotifiedMessageId.slice(0, 80) : null,
+        lastInteractionAt: validTimestamp(source.lastInteractionAt, lastUpdated, now),
+        messageLedger: Array.isArray(source.messageLedger)
+            ? source.messageLedger.filter(function (item) { return typeof item === 'string' && item.length > 0; }).slice(0, 80)
+            : [],
     };
 };
 exports.normalizeSnapshot = normalizeSnapshot;
@@ -677,6 +1149,7 @@ var zustand_1 = require("zustand");
 var middleware_1 = require("zustand/middleware");
 var progression_1 = require("./progression");
 var save_1 = require("./save");
+var companion_life_1 = require("./companion-life");
 var stories_1 = require("./stories");
 var transfer_1 = require("./transfer");
 var types_1 = require("./types");
@@ -722,7 +1195,80 @@ var applyCareEffects = function (current, action) {
     }
     return needs;
 };
-exports.useGameStore = (0, zustand_1.create)()((0, middleware_1.persist)(function (set, get) { return (__assign(__assign({}, (0, save_1.freshSnapshot)()), { tick: function () { return set(function (state) { return (0, progression_1.settleTimedState)(state, Date.now()); }); }, care: function (action) { return set(function (state) {
+/** 0.3.9：每次状态推进后统一结算生命周期、消息与纪念。
+ *  patch 只包含本次变化的字段，先与 previous 合并成完整状态再结算，
+ *  避免缺失 farewellAt / messages / memorials 导致误判告别或清空历史。 */
+var withLife = function (previous, patch, now) {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+    var next = __assign(__assign({}, previous), patch);
+    var beforeStage = (_a = previous.lastStage) !== null && _a !== void 0 ? _a : (0, companion_life_1.lifeStage)(previous, previous.lastUpdated).stage;
+    var farewellDue = (0, companion_life_1.shouldFarewell)(next, now);
+    var farewellAt = farewellDue ? now : next.farewellAt;
+    var stageInfo = (0, companion_life_1.lifeStage)(__assign(__assign({}, next), { farewellAt: farewellAt }), now);
+    var healthBand = next.needs.health < 30 ? 'low' : 'ok';
+    var candidates = (0, companion_life_1.composeMessages)({
+        previous: {
+            needs: previous.needs,
+            lastUpdated: previous.lastUpdated,
+            lastInteractionAt: (_b = previous.lastInteractionAt) !== null && _b !== void 0 ? _b : previous.lastUpdated,
+            healthBand: (_c = previous.healthBand) !== null && _c !== void 0 ? _c : 'ok',
+            lifeMode: (_d = previous.lifeMode) !== null && _d !== void 0 ? _d : 'gentle',
+            lifeStartedAt: (_e = previous.lifeStartedAt) !== null && _e !== void 0 ? _e : null,
+            ageMinutes: previous.ageMinutes,
+            farewellAt: (_f = previous.farewellAt) !== null && _f !== void 0 ? _f : null,
+            hatched: previous.hatched,
+        },
+        next: { needs: next.needs, healthBand: healthBand, farewellAt: farewellAt },
+        now: now,
+        stageChanged: beforeStage !== stageInfo.stage,
+        stageName: stageInfo.name,
+    });
+    var merged = (0, companion_life_1.mergeMessages)((_g = next.messages) !== null && _g !== void 0 ? _g : [], candidates, (_h = next.messageLedger) !== null && _h !== void 0 ? _h : []);
+    // 纪念只写一次：id 绑定生命周期起点，重复结算不会产生多条
+    var memorials = farewellDue && next.farewellAt === null
+        ? (0, companion_life_1.pushMemorial)((_j = next.memorials) !== null && _j !== void 0 ? _j : [], {
+            id: "farewell-".concat((_k = next.lifeStartedAt) !== null && _k !== void 0 ? _k : now),
+            at: now,
+            petName: next.petName,
+            character: next.character,
+            days: stageInfo.days,
+            bond: Math.round(next.bond),
+            growthPoints: Math.round(next.growthPoints),
+            storyIndex: next.storyIndex,
+            reason: 'farewell',
+        })
+        : next.memorials;
+    return __assign(__assign({}, next), { farewellAt: farewellAt, messages: merged.messages, messageLedger: merged.ledger, memorials: memorials, lastStage: stageInfo.stage, healthBand: healthBand });
+};
+var applyLife = function (state, now) {
+    var settled = (0, progression_1.settleTimedState)(state, now);
+    return withLife(state, __assign({}, settled), settled.lastUpdated);
+};
+/** 重新领养 / 重置时保留纪念与设置，避免静默丢档；同一伙伴不会重复写入 */
+var archiveCurrent = function (state, now, reason) {
+    var _a;
+    var existing = (_a = state.memorials) !== null && _a !== void 0 ? _a : [];
+    // 已经为这次告别写过纪念：不再重复
+    if (state.farewellAt !== null && existing.some(function (item) { return item.id === "farewell-".concat(state.lifeStartedAt); }))
+        return existing;
+    var identity = state.farewellAt !== null ? "farewell-".concat(state.farewellAt) : "rehomed-".concat(now);
+    if (existing.some(function (item) { return item.id === identity; }))
+        return existing;
+    return (0, companion_life_1.pushMemorial)(existing, {
+        id: identity,
+        at: now,
+        petName: state.petName,
+        character: state.character,
+        days: (0, companion_life_1.lifeStage)(state, now).days,
+        bond: Math.round(state.bond),
+        growthPoints: Math.round(state.growthPoints),
+        storyIndex: state.storyIndex,
+        reason: reason,
+    });
+};
+exports.useGameStore = (0, zustand_1.create)()((0, middleware_1.persist)(function (set, get) { return (__assign(__assign({}, (0, save_1.freshSnapshot)()), { tick: function () { return set(function (state) { return applyLife(state, Date.now()); }); }, care: function (action) { return set(function (state) {
+        if (state.farewellAt !== null)
+            return __assign(__assign({}, state), { lastReply: '它正在安静休息。想继续陪伴的话，可以重新领养一位小伙伴。' });
         var sampledNow = Date.now();
         var settled = (0, progression_1.settleTimedState)(state, sampledNow);
         var now = settled.lastUpdated;
@@ -746,9 +1292,11 @@ exports.useGameStore = (0, zustand_1.create)()((0, middleware_1.persist)(functio
         var bondGain = action === 'cuddle' ? 4 : action === 'play' || action === 'explore' ? 3 : 1.5;
         var nextBond = (0, types_1.clampNeed)(state.bond + bondGain);
         var storyReady = (0, stories_1.isStoryUnlocked)(state.storyIndex, nextBond);
-        return __assign(__assign({}, settled), { needs: applyCareEffects(settled.needs, action), bond: nextBond, sparks: sparks, growthPoints: growthPoints, growthCooldownUntil: growthReady ? now + progression_1.CARE_GROWTH_COOLDOWN_MS : state.growthCooldownUntil, personalityScores: personalityScores, personalityFocus: personalityFocus, activeIncident: activeIncident, nextIncidentAt: nextIncidentAt, lastAction: action, actionNonce: state.actionNonce + 1, storyOpen: state.storyOpen || storyReady, lastReply: lastReply });
+        return withLife(state, __assign(__assign({}, settled), { needs: applyCareEffects(settled.needs, action), bond: nextBond, sparks: sparks, growthPoints: growthPoints, growthCooldownUntil: growthReady ? now + progression_1.CARE_GROWTH_COOLDOWN_MS : state.growthCooldownUntil, personalityScores: personalityScores, personalityFocus: personalityFocus, activeIncident: activeIncident, nextIncidentAt: nextIncidentAt, lastAction: action, actionNonce: state.actionNonce + 1, storyOpen: state.storyOpen || storyReady, lastReply: lastReply, lastInteractionAt: now }), now);
     }); }, completeActivity: function (gameId, score) { return set(function (state) {
         var _a;
+        if (state.farewellAt !== null)
+            return state;
         var settled = (0, progression_1.settleTimedState)(state, Date.now());
         var safeScore = normalizeActivityScore(gameId, score);
         var today = (0, progression_1.utcDateKey)(settled.lastUpdated);
@@ -773,15 +1321,19 @@ exports.useGameStore = (0, zustand_1.create)()((0, middleware_1.persist)(functio
         var personalityFocus = canEarnDailyGrowth ? trait : state.personalityFocus;
         var lastGrowthActivityDate = canEarnDailyGrowth ? today : state.lastGrowthActivityDate;
         var growthMessage = canEarnDailyGrowth ? ' and a +6 growth echo' : '';
-        return __assign(__assign({}, settled), { sparks: state.sparks + reward, playStreak: playStreak, lastActivityDate: today, lastGrowthActivityDate: lastGrowthActivityDate, growthPoints: state.growthPoints + growthAward, personalityScores: personalityScores, personalityFocus: personalityFocus, activityBest: __assign(__assign({}, state.activityBest), (_a = {}, _a[gameId] = Math.max(state.activityBest[gameId], safeScore), _a)), needs: __assign(__assign({}, settled.needs), { joy: (0, types_1.clampNeed)(settled.needs.joy + Math.min(28, 8 + safeScore)), energy: (0, types_1.clampNeed)(settled.needs.energy - 6), hunger: (0, types_1.clampNeed)(settled.needs.hunger - 2) }), bond: (0, types_1.clampNeed)(state.bond + 2 + safeScore / 10), lastAction: 'activity', actionNonce: state.actionNonce + 1, lastReply: "".concat(state.petName, " found ").concat(reward, " Sparks").concat(growthMessage, " in the Tamagochi Arcade!") });
+        return withLife(state, __assign(__assign({}, settled), { sparks: state.sparks + reward, playStreak: playStreak, lastActivityDate: today, lastGrowthActivityDate: lastGrowthActivityDate, growthPoints: state.growthPoints + growthAward, personalityScores: personalityScores, personalityFocus: personalityFocus, activityBest: __assign(__assign({}, state.activityBest), (_a = {}, _a[gameId] = Math.max(state.activityBest[gameId], safeScore), _a)), needs: __assign(__assign({}, settled.needs), { joy: (0, types_1.clampNeed)(settled.needs.joy + Math.min(28, 8 + safeScore)), energy: (0, types_1.clampNeed)(settled.needs.energy - 6), hunger: (0, types_1.clampNeed)(settled.needs.hunger - 2) }), bond: (0, types_1.clampNeed)(state.bond + 2 + safeScore / 10), lastAction: 'activity', actionNonce: state.actionNonce + 1, lastReply: "".concat(state.petName, " found ").concat(reward, " Sparks").concat(growthMessage, " in the Tamagochi Arcade!"), lastInteractionAt: settled.lastUpdated }), settled.lastUpdated);
     }); }, chooseStory: function (choiceIndex) { return set(function (state) {
+        if (state.farewellAt !== null)
+            return state;
         var event = stories_1.STORY_EVENTS[state.storyIndex];
         var choice = event === null || event === void 0 ? void 0 : event.choices[choiceIndex];
         if (!choice)
             return state;
         var settled = (0, progression_1.settleTimedState)(state, Date.now());
-        return __assign(__assign({}, settled), { bond: (0, types_1.clampNeed)(state.bond + choice.bond), needs: __assign(__assign({}, settled.needs), { joy: (0, types_1.clampNeed)(settled.needs.joy + choice.joy) }), personalityScores: (0, progression_1.applyTraitAward)(state.personalityScores, choice.trait, 5), personalityFocus: choice.trait, growthPoints: state.growthPoints + 12, storyIndex: state.storyIndex + 1, storyOpen: false, lastAction: 'story', actionNonce: state.actionNonce + 1, lastReply: "".concat(choice.reply, " \u00B7 +12 growth.") });
+        return withLife(state, __assign(__assign({}, settled), { bond: (0, types_1.clampNeed)(state.bond + choice.bond), needs: __assign(__assign({}, settled.needs), { joy: (0, types_1.clampNeed)(settled.needs.joy + choice.joy) }), personalityScores: (0, progression_1.applyTraitAward)(state.personalityScores, choice.trait, 5), personalityFocus: choice.trait, growthPoints: state.growthPoints + 12, storyIndex: state.storyIndex + 1, storyOpen: false, lastAction: 'story', actionNonce: state.actionNonce + 1, lastReply: "".concat(choice.reply, " \u00B7 +12 growth."), lastInteractionAt: settled.lastUpdated }), settled.lastUpdated);
     }); }, purchaseKeepsake: function (itemId) { return set(function (state) {
+        if (state.farewellAt !== null)
+            return state;
         if (!(0, progression_1.isKeepsakeId)(itemId) || !(0, progression_1.canPurchaseKeepsake)(state.sparks, state.ownedItemIds, itemId))
             return state;
         var item = progression_1.KEEPSAKE_BY_ID[itemId];
@@ -790,6 +1342,7 @@ exports.useGameStore = (0, zustand_1.create)()((0, middleware_1.persist)(functio
             ownedItemIds: __spreadArray(__spreadArray([], __read(state.ownedItemIds), false), [itemId], false),
             lastAction: 'workshop',
             actionNonce: state.actionNonce + 1,
+            lastInteractionAt: Date.now(),
             lastReply: "".concat(item.name, " joined Mori\u2019s keepsake collection."),
         };
     }); }, toggleKeepsake: function (itemId) { return set(function (state) {
@@ -820,7 +1373,46 @@ exports.useGameStore = (0, zustand_1.create)()((0, middleware_1.persist)(functio
         if (state.hatched || !state.egg)
             return state;
         return __assign(__assign({}, state), { eggSoothedAt: Date.now(), actionNonce: state.actionNonce + 1, lastAction: null, lastReply: '蛋轻轻晃了晃，好像在回应你。' });
-    }); }, setHeadphones: function (on) { return set(function (state) { return (state.headphones === on === true ? state : __assign(__assign({}, state), { headphones: on === true, lastAction: 'workshop', actionNonce: state.actionNonce + 1, lastReply: null })); }); }, exportSave: function () {
+    }); }, setHeadphones: function (on) { return set(function (state) { return (state.headphones === on === true ? state : __assign(__assign({}, state), { headphones: on === true, lastAction: 'workshop', actionNonce: state.actionNonce + 1, lastReply: null })); }); }, setLifeMode: function (mode) { return set(function (state) {
+        if (state.lifeMode === mode)
+            return state;
+        if (state.farewellAt !== null)
+            return __assign(__assign({}, state), { lastReply: '它已经安静告别了，模式切换不会让它回来。可以在纪念里回看，或重新领养。' });
+        var now = Date.now();
+        if (mode !== 'cycle') {
+            return __assign(__assign({}, state), { lifeMode: 'gentle', lifeStartedAt: null, lastReply: '已回到温柔陪伴：它会一直陪着你，不会告别。' });
+        }
+        // 进入生命周期模式一律从当前时刻重新起算，旧档年龄不会立刻判为告别
+        return __assign(__assign({}, state), { lifeMode: 'cycle', lifeStartedAt: now, farewellAt: null, lastReply: '生命周期模式已开启：从今天开始记录相处的日子。' });
+    }); }, setQuiet: function (patch) { return set(function (state) { return ({ quiet: __assign(__assign({}, state.quiet), patch) }); }); }, setNotify: function (patch) { return set(function (state) { return ({ notify: __assign(__assign({}, state.notify), patch) }); }); }, recordNotification: function (sentAt) { return set(function (state) { return ({
+        notify: (0, companion_life_1.markNotificationSent)(state.notify, sentAt),
+    }); }); }, takeNotification: function (now, systemQuiet) {
+        var state = get();
+        var latest = state.messages.length ? state.messages[0] : null;
+        if (!latest)
+            return { ok: false, reason: '没有新消息' };
+        if (latest.id === state.lastNotifiedMessageId)
+            return { ok: false, reason: '这条消息已经处理过' };
+        // 只发新产生的消息：勿扰期间积压的旧消息不补发
+        if (now - latest.at > 90000) {
+            set({ lastNotifiedMessageId: latest.id });
+            return { ok: false, reason: '消息已过期，不补发' };
+        }
+        var decision = (0, companion_life_1.canSendNotification)(state.notify, state.quiet, now, systemQuiet);
+        if (!decision.ok) {
+            // 勿扰 / 达上限时不排队，之后也不补发
+            set({ lastNotifiedMessageId: latest.id, notify: decision.settings });
+            return { ok: false, reason: decision.reason };
+        }
+        set({ notify: decision.settings, lastNotifiedMessageId: latest.id });
+        return { ok: true, reason: '可以发送', id: latest.id, title: '拓麻歌子', body: latest.text, vibrate: state.notify.vibrate };
+    }, notificationPreview: function (now, systemQuiet) { return (0, companion_life_1.canSendNotification)(get().notify, get().quiet, now, systemQuiet); }, clearMessages: function () { return set({ messages: [] }); }, adoptAgain: function () { return set(function (state) {
+        var now = Date.now();
+        var fresh = (0, save_1.freshSnapshot)(now);
+        return __assign(__assign({}, fresh), { 
+            // 保留纪念与陪伴设置：重新领养不静默丢档
+            memorials: archiveCurrent(state, now, state.farewellAt === null ? 'rehomed' : 'farewell'), quiet: state.quiet, notify: state.notify, lastReply: '新的小生命来到了口袋里。以前的相处记录都留在纪念里。' });
+    }); }, exportSave: function () {
         var now = Date.now();
         var snapshot = (0, save_1.normalizeSnapshot)(get(), now);
         return {
@@ -833,7 +1425,12 @@ exports.useGameStore = (0, zustand_1.create)()((0, middleware_1.persist)(functio
             return parsed;
         set(__assign(__assign({}, parsed.snapshot), { storyOpen: false, lastAction: null, lastReply: "".concat(parsed.snapshot.petName, " woke up from a restored backup.") }));
         return { ok: true };
-    }, reset: function () { return set((0, save_1.freshSnapshot)()); } })); }, {
+    }, reset: function () { return set(function (state) {
+        var now = Date.now();
+        return __assign(__assign({}, (0, save_1.freshSnapshot)(now)), { 
+            // 重新领养前先把当前伙伴写入纪念，纪念与设置不会被静默删除
+            memorials: archiveCurrent(state, now, 'rehomed'), quiet: state.quiet, notify: state.notify });
+    }); } })); }, {
     name: 'pocket-worlds-save-v1',
     version: 3,
     migrate: function (persistedState) { return (0, save_1.normalizeSnapshot)(persistedState); },
@@ -845,7 +1442,7 @@ var game = require('store').useGameStore;
 var save = require('save');
 var progression = require('progression');
 var stories = require('stories');
-var allowed = ['tick','care','completeActivity','chooseStory','purchaseKeepsake','toggleKeepsake','openStory','closeStory','setTheme','setMode','setCharacter','setHeadphones','sootheEgg','exportSave','importSave','reset'];
+var allowed = ['tick','care','completeActivity','chooseStory','purchaseKeepsake','toggleKeepsake','openStory','closeStory','setTheme','setMode','setCharacter','setHeadphones','sootheEgg','setLifeMode','setQuiet','setNotify','recordNotification','takeNotification','notificationPreview','clearMessages','adoptAgain','exportSave','importSave','reset'];
 function initGame(saved, legacy) {
   var snapshot = saved ? save.normalizeSnapshot(JSON.parse(saved)) : save.freshSnapshot();
   if (!saved) {
@@ -873,10 +1470,29 @@ function dispatchGame(action, argumentsJson) {
   if (!Array.isArray(args) || args.length > 2) throw new Error('操作参数错误');
   if (action === 'care' && !progression.CARE_TRAIT[args[0]]) throw new Error('照料方式错误');
   if (action === 'setMode' && ['cozy','classic'].indexOf(args[0]) < 0) throw new Error('模式错误');
+  if (action === 'setLifeMode' && ['gentle','cycle'].indexOf(args[0]) < 0) throw new Error('生命周期模式错误');
+  if (action === 'recordNotification' && !(typeof args[0] === 'number' && isFinite(args[0]))) throw new Error('通知时间错误');
+  if ((action === 'takeNotification' || action === 'notificationPreview') && !(typeof args[0] === 'number' && isFinite(args[0]) && typeof args[1] === 'boolean')) throw new Error('通知参数错误');
   if (action === 'setTheme' && ['sakura','cyber','moss','moon'].indexOf(args[0]) < 0) throw new Error('主题错误');
   if (action === 'setCharacter' && ['star','block','sprout','bunny','fox','otter','owl','drake'].indexOf(args[0]) < 0) throw new Error('角色错误');
   if (action === 'completeActivity' && ['star-catch','memory-flip'].indexOf(args[0]) < 0) throw new Error('游戏类型错误');
   if (action === 'chooseStory' && !stories.isStoryUnlocked(state.storyIndex, state.bond)) throw new Error('这段回忆尚未解锁');
+  if (action === 'setQuiet' || action === 'setNotify') {
+    var patch = args[0];
+    if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw new Error('设置格式错误');
+    var keys = Object.keys(patch);
+    keys.forEach(function(key) {
+      var value = patch[key];
+      if (action === 'setQuiet') {
+        if (['manual','schedule','weekdaysOnly'].indexOf(key) >= 0 && typeof value === 'boolean') return;
+        if (['startMinute','endMinute'].indexOf(key) >= 0 && typeof value === 'number' && isFinite(value) && value >= 0 && value < 1440 && value % 1 === 0) return;
+      } else {
+        if (['enabled','vibrate'].indexOf(key) >= 0 && typeof value === 'boolean') return;
+        if (key === 'frequency' && ['low','normal'].indexOf(value) >= 0) return;
+      }
+      throw new Error('设置值无效');
+    });
+  }
   var result = game.getState()[action].apply(null, args);
   return JSON.stringify({ snapshot: game.getState(), result: result === undefined ? null : result });
 }

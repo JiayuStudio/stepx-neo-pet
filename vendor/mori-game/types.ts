@@ -1,4 +1,5 @@
 export type ThemeId = 'sakura' | 'cyber' | 'moss' | 'moon'
+import type { MemorialEntry, NotifySettings, PetMessage, QuietSettings } from './companion-life'
 export type CharacterId = 'star' | 'block' | 'sprout' | 'bunny' | 'fox' | 'otter' | 'owl' | 'drake'
 export type GameMode = 'cozy' | 'classic'
 export type NeedKey = 'hunger' | 'joy' | 'hygiene' | 'energy' | 'health'
@@ -94,6 +95,32 @@ export interface GameSnapshot {
   hatched: boolean
   /** 蛋阶段轻触安抚的时间戳（短暂反馈） */
   eggSoothedAt: number | null
+  /** 0.3.9 生命周期模式：默认 gentle（温柔陪伴，不告别） */
+  lifeMode: 'gentle' | 'cycle'
+  /** 生命周期模式的年龄起点；gentle 为 null。切换模式时从当前时刻重新建立 */
+  lifeStartedAt: number | null
+  /** 自然告别时间；非 null 表示已告别，保留纪念 */
+  farewellAt: number | null
+  /** 本地消息（最近 20 条，新的在前） */
+  messages: PetMessage[]
+  /** 上一阶段名（用于检测成长消息，归一化时保留） */
+  lastStage: string | null
+  /** 健康档位，用于康复消息 */
+  healthBand: 'low' | 'ok'
+  /** 勿扰设置 */
+  quiet: QuietSettings
+  /** 主动通知设置（含跨重启的频控计数） */
+  notify: NotifySettings
+  /** 已产生过的消息日期键（避免重复） */
+  lastMessageDay: string | null
+  /** 永久纪念（告别 / 重新领养时写入） */
+  memorials: MemorialEntry[]
+  /** 已通过系统通知发过的消息 id（避免重复，也避免勿扰后补发） */
+  lastNotifiedMessageId: string | null
+  /** 上次真实互动的时刻（喂养 / 陪玩 / 剧情 / 装扮）；用于「想念」消息，不被每秒 tick 刷新 */
+  lastInteractionAt: number
+  /** 已产生过的事件 id（持久化，清空消息列表也不会重放） */
+  messageLedger: string[]
 }
 
 export const clampNeed = (value: number) => Math.max(0, Math.min(100, value))
@@ -105,4 +132,42 @@ export const getMood = (needs: PetNeeds): PetMood => {
   if (needs.joy < 28 || needs.hygiene < 22) return 'grumpy'
   const average = Object.values(needs).reduce((sum, value) => sum + value, 0) / 5
   return average > 88 ? 'radiant' : average > 64 ? 'happy' : 'peckish'
+}
+
+export interface SaveExport {
+  contents: string
+  fileName: string
+}
+
+export type SaveImportResult = { ok: true } | { ok: false; error: string }
+
+export interface GameState extends GameSnapshot {
+  tick: () => void
+  care: (action: CareAction) => void
+  completeActivity: (gameId: MiniGameId, score: number) => void
+  chooseStory: (choiceIndex: number) => void
+  purchaseKeepsake: (itemId: KeepsakeId) => void
+  toggleKeepsake: (itemId: KeepsakeId) => void
+  openStory: () => void
+  closeStory: () => void
+  setTheme: (themeId: ThemeId) => void
+  setMode: (mode: GameMode) => void
+  setCharacter: (character: CharacterId) => void
+  setHeadphones: (on: boolean) => void
+  sootheEgg: () => void
+  /** 0.3.9 生命周期模式：进入 cycle 时从当前时刻重新起算年龄 */
+  setLifeMode: (mode: 'gentle' | 'cycle') => void
+  setQuiet: (patch: Partial<QuietSettings>) => void
+  setNotify: (patch: Partial<NotifySettings>) => void
+  /** 原生通知发送成功后回写计数（跨重启保存） */
+  recordNotification: (sentAt: number) => void
+  /** 原生在发通知前调用：引擎判断勿扰 / 频控并消费消息；仅发送成功后记录配额 */
+  takeNotification: (now: number, systemQuiet: boolean) => { ok: boolean; reason: string; id?: string; title?: string; body?: string; vibrate?: boolean }
+  notificationPreview: (now: number, systemQuiet: boolean) => { ok: boolean; reason: string }
+  clearMessages: () => void
+  /** 告别后重新领养：保留纪念与设置，需用户明确确认后调用 */
+  adoptAgain: () => void
+  exportSave: () => SaveExport
+  importSave: (contents: string) => SaveImportResult
+  reset: () => void
 }

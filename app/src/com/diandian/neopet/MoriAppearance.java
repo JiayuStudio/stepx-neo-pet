@@ -11,8 +11,13 @@ public final class MoriAppearance {
     }
     /** 与 web/src/game/matrixScene.ts 的 selectScene 同规则（0.3.6）：
      *  死亡优先于需求；健康/清洁低 = sick，饱食低 = hungry，心情低 = unhappy，精力低 = sleep。 */
+    /** 兼容旧调用：默认按生命周期模式处理（健康归零 → 倒下） */
     public static String scene(double health,double energy,double hunger,double joy,double hygiene){
-        if(health<=0)return "dead";
+        return scene(health,energy,hunger,joy,hygiene,false);
+    }
+    /** gentle=true 表示温柔陪伴模式：健康归零只显示生病，不会画成死亡 */
+    public static String scene(double health,double energy,double hunger,double joy,double hygiene,boolean gentle){
+        if(health<=0)return gentle?"sick":"dead";
         if(health<30||hygiene<22)return "sick";
         if(hunger<28)return "hungry";
         if(joy<28)return "unhappy";

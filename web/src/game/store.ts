@@ -25,7 +25,7 @@ declare global {
     __neoUpdateResult?: (requestId: string, resultJson: string) => void
   }
 }
-const names = ['care','completeActivity','chooseStory','purchaseKeepsake','toggleKeepsake','openStory','closeStory','setTheme','setMode','setCharacter','setHeadphones','sootheEgg','exportSave','importSave','reset'] as const
+const names = ['care','completeActivity','chooseStory','purchaseKeepsake','toggleKeepsake','openStory','closeStory','setTheme','setMode','setCharacter','setHeadphones','sootheEgg','setLifeMode','setQuiet','setNotify','recordNotification','takeNotification','clearMessages','adoptAgain','exportSave','importSave','reset'] as const
 
 /*
  * 最小外部 store（替代 zustand，语义与引擎内部 shim 一致）：

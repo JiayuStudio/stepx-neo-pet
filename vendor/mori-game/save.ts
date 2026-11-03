@@ -11,6 +11,17 @@ import {
   utcDateKey,
 } from './progression'
 import { STORY_COUNT } from './stories'
+import {
+  DEFAULT_NOTIFY,
+  DEFAULT_QUIET,
+  clampMinute,
+  type MemorialEntry,
+  type NotifyFrequency,
+  type NotifySettings,
+  type PetMessage,
+  type PetMessageKind,
+  type QuietSettings,
+} from './companion-life'
 import type {
   ActionSignal,
   ActiveIncident,
@@ -74,7 +85,65 @@ export const freshSnapshot = (now = Date.now()): GameSnapshot => ({
   ownedItemIds: [],
   equippedWearable: null,
   equippedRoomItem: null,
+  lifeMode: 'gentle',
+  lifeStartedAt: null,
+  farewellAt: null,
+  messages: [],
+  lastStage: null,
+  healthBand: 'ok',
+  quiet: { ...DEFAULT_QUIET },
+  notify: { ...DEFAULT_NOTIFY },
+  lastMessageDay: null,
+  memorials: [],
+  lastNotifiedMessageId: null,
+  lastInteractionAt: now,
+  messageLedger: [],
 })
+
+const normalizeQuiet = (value: unknown): QuietSettings => {
+  const source = isRecord(value) ? value : {}
+  return {
+    manual: source.manual === true,
+    schedule: typeof source.schedule === 'boolean' ? source.schedule : DEFAULT_QUIET.schedule,
+    startMinute: clampMinute(source.startMinute, DEFAULT_QUIET.startMinute),
+    endMinute: clampMinute(source.endMinute, DEFAULT_QUIET.endMinute),
+    weekdaysOnly: source.weekdaysOnly === true,
+  }
+}
+
+const normalizeNotify = (value: unknown, now: number): NotifySettings => {
+  const source = isRecord(value) ? value : {}
+  const frequency: NotifyFrequency = source.frequency === 'normal' ? 'normal' : 'low'
+  const sentCount = integer(source.sentCount, 0, 0, 1000)
+  const windowStartedAt = finite(source.windowStartedAt, 0)
+  const lastSentAt = finite(source.lastSentAt, Number.NaN)
+  return {
+    enabled: source.enabled === true,
+    vibrate: source.vibrate === true,
+    frequency,
+    sentCount,
+    windowStartedAt: windowStartedAt > 0 && windowStartedAt <= now ? windowStartedAt : 0,
+    lastSentAt: Number.isFinite(lastSentAt) && lastSentAt > 0 && lastSentAt <= now ? lastSentAt : null,
+  }
+}
+
+const MESSAGE_KINDS: readonly PetMessageKind[] = ['morning', 'night', 'miss', 'care', 'recover', 'growth', 'farewell', 'idle']
+
+const normalizeMessages = (value: unknown, now: number): PetMessage[] => {
+  if (!Array.isArray(value)) return []
+  const out: PetMessage[] = []
+  for (const item of value.slice(0, 30)) {
+    if (!isRecord(item)) continue
+    const kind = MESSAGE_KINDS.includes(item.kind as PetMessageKind) ? item.kind as PetMessageKind : null
+    const at = finite(item.at, Number.NaN)
+    const text = typeof item.text === 'string' ? item.text.slice(0, 160) : ''
+    const id = typeof item.id === 'string' ? item.id.slice(0, 80) : null
+    if (!kind || !id || !text || !Number.isFinite(at) || at < 0 || at > now) continue
+    const action = typeof item.action === 'string' ? item.action.slice(0, 20) : 'idle'
+    out.push({ id, kind, at, text, action: action as PetMessage['action'] })
+  }
+  return out.slice(0, 20)
+}
 
 const normalizeNeeds = (value: unknown, fallback: PetNeeds): PetNeeds => {
   const needs = isRecord(value) ? value : {}
@@ -121,6 +190,31 @@ const normalizeIncident = (value: unknown, now: number): ActiveIncident | null =
 const normalizeEquipment = (value: unknown, owned: readonly KeepsakeId[], category: 'wearable' | 'room') => {
   if (!isKeepsakeId(value) || !owned.includes(value)) return null
   return KEEPSAKE_BY_ID[value].category === category ? value : null
+}
+
+const normalizeMemorials = (value: unknown, now: number): MemorialEntry[] => {
+  if (!Array.isArray(value)) return []
+  const out: MemorialEntry[] = []
+  for (const item of value) {
+    if (!isRecord(item)) continue
+    const at = finite(item.at, Number.NaN)
+    const id = typeof item.id === 'string' ? item.id.slice(0, 80) : null
+    const petName = typeof item.petName === 'string' ? item.petName.slice(0, 30) : ''
+    const character = typeof item.character === 'string' ? item.character.slice(0, 20) : 'star'
+    if (!id || !petName || !Number.isFinite(at) || at < 0 || at > now) continue
+    out.push({
+      id,
+      at,
+      petName,
+      character,
+      days: integer(item.days, 0, 0, 100_000),
+      bond: integer(item.bond, 0, 0, 100),
+      growthPoints: integer(item.growthPoints, 0, 0, 100_000),
+      storyIndex: integer(item.storyIndex, 0, 0, STORY_COUNT),
+      reason: item.reason === 'rehomed' ? 'rehomed' : 'farewell',
+    })
+  }
+  return out
 }
 
 export const normalizeSnapshot = (value: unknown, now = Date.now()): GameSnapshot => {
@@ -202,5 +296,25 @@ export const normalizeSnapshot = (value: unknown, now = Date.now()): GameSnapsho
     ownedItemIds,
     equippedWearable: normalizeEquipment(source.equippedWearable, ownedItemIds, 'wearable'),
     equippedRoomItem: normalizeEquipment(source.equippedRoomItem, ownedItemIds, 'room'),
+    // 0.3.9：旧存档一律进入温柔陪伴；生命周期模式必须由用户主动选择（lifeStartedAt 只在切换时建立）
+    lifeMode: source.lifeMode === 'cycle' ? 'cycle' : 'gentle',
+    lifeStartedAt: source.lifeMode === 'cycle' && Number.isFinite(finite(source.lifeStartedAt, Number.NaN))
+      ? validTimestamp(source.lifeStartedAt, now, now)
+      : null,
+    farewellAt: Number.isFinite(finite(source.farewellAt, Number.NaN))
+      ? validTimestamp(source.farewellAt, now, now)
+      : null,
+    messages: normalizeMessages(source.messages, now),
+    lastStage: typeof source.lastStage === 'string' ? source.lastStage.slice(0, 20) : null,
+    healthBand: source.healthBand === 'low' ? 'low' : 'ok',
+    quiet: normalizeQuiet(source.quiet),
+    notify: normalizeNotify(source.notify, now),
+    lastMessageDay: typeof source.lastMessageDay === 'string' ? source.lastMessageDay.slice(0, 20) : null,
+    memorials: normalizeMemorials(source.memorials, now),
+    lastNotifiedMessageId: typeof source.lastNotifiedMessageId === 'string' ? source.lastNotifiedMessageId.slice(0, 80) : null,
+    lastInteractionAt: validTimestamp(source.lastInteractionAt, lastUpdated, now),
+    messageLedger: Array.isArray(source.messageLedger)
+      ? source.messageLedger.filter((item): item is string => typeof item === 'string' && item.length > 0).slice(0, 80)
+      : [],
   }
 }

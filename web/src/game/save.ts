@@ -73,6 +73,20 @@ export const freshSnapshot = (now = Date.now()): GameSnapshot => ({
   ownedItemIds: [],
   equippedWearable: null,
   equippedRoomItem: null,
+  // 0.3.9：Web 侧仅作类型镜像；真正的存档归一化在 vendor/mori-game/save.ts
+  lifeMode: 'gentle',
+  lifeStartedAt: null,
+  farewellAt: null,
+  messages: [],
+  lastStage: null,
+  healthBand: 'ok',
+  quiet: { manual: false, schedule: true, startMinute: 22 * 60, endMinute: 8 * 60, weekdaysOnly: false },
+  notify: { enabled: false, vibrate: false, frequency: 'low', sentCount: 0, windowStartedAt: 0, lastSentAt: null },
+  lastMessageDay: null,
+  memorials: [],
+  lastNotifiedMessageId: null,
+  lastInteractionAt: now,
+  messageLedger: [],
 })
 
 const normalizeNeeds = (value: unknown, fallback: PetNeeds): PetNeeds => {
@@ -201,5 +215,19 @@ export const normalizeSnapshot = (value: unknown, now = Date.now()): GameSnapsho
     ownedItemIds,
     equippedWearable: normalizeEquipment(source.equippedWearable, ownedItemIds, 'wearable'),
     equippedRoomItem: normalizeEquipment(source.equippedRoomItem, ownedItemIds, 'room'),
+    // 0.3.9：Web 镜像沿用同样的字段；运行时以 vendor 引擎为准
+    lifeMode: source.lifeMode === 'cycle' ? 'cycle' : fresh.lifeMode,
+    lifeStartedAt: source.lifeMode === 'cycle' ? fresh.lastUpdated : fresh.lifeStartedAt,
+    farewellAt: fresh.farewellAt,
+    messages: fresh.messages,
+    lastStage: fresh.lastStage,
+    healthBand: needs.health < 30 ? 'low' : 'ok',
+    quiet: fresh.quiet,
+    notify: fresh.notify,
+    lastMessageDay: fresh.lastMessageDay,
+    memorials: fresh.memorials,
+    lastNotifiedMessageId: fresh.lastNotifiedMessageId,
+    lastInteractionAt: lastUpdated,
+    messageLedger: fresh.messageLedger,
   }
 }

@@ -13,14 +13,21 @@ public final class PetService extends Service {
     private final MoriMatrix presentation=new MoriMatrix();
     private RearDisplay display;private LockedDisplaySession locked;private PetArt art;
     private volatile boolean running;private long frames,changedFrames,petChangedFrames,startedAt;private int lastHash,lastPetHash;
+    private long lastNoticeCheck;private String lastNoticeId="";
     private String scene="idle",artKey="idle",status="正在开启",error="";
     static SharedPreferences prefs(Context c){return c.getSharedPreferences("companion",0);}
     static boolean running(){return instance!=null&&instance.running;}
     static String status(Context c){return instance==null?prefs(c).getString("status","尚未开启背屏陪伴"):instance.status;}
+    /** 当前背屏状态原因；未运行时返回已保存的状态说明 */
+    static String reason(Context c){
+        if(instance==null||!instance.running)return prefs(c).getString("reason","背屏陪伴未开启");
+        return instance.locked==null?"正在刷新":instance.locked.reason();
+    }
     @Override public void onCreate(){
         super.onCreate();instance=this;
         NotificationManager nm=getSystemService(NotificationManager.class);
         nm.createNotificationChannel(new NotificationChannel("pet-companion","拓麻歌子背屏陪伴",NotificationManager.IMPORTANCE_LOW));
+        CompanionNotice.ensureChannels(this);
         startForeground(1,notification(),ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
     }
     private Notification notification(){
@@ -57,10 +64,37 @@ public final class PetService extends Service {
             // Count the pet separately: a blinking incident marker must not pass animation QA.
             int petHash=Arrays.hashCode(petFrame);if(frames==1||petHash!=lastPetHash){petChangedFrames++;lastPetHash=petHash;}
             int hash=Arrays.hashCode(frame);if(hash!=lastHash){changedFrames++;lastHash=hash;}
-            status="背屏陪伴运行中 · 已发送 "+frames+" 帧";
+            // 状态只描述可观察的原因，不把帧计数当作"物理显示成功"
+            status="背屏陪伴运行中 · "+(locked==null?"正在刷新":locked.reason());
+            maybeNotify(pet,now);
             handler.postDelayed(this,art.interval(artKey));
         }catch(Exception e){fail(e);}
     }};
+    /** 主动消息通知：引擎判定勿扰与频控，原生只做系统层检查与发送。
+     *  用户主动操作不经过这里，因此不占通知限额；勿扰期间产生的消息不补发。 */
+    private void maybeNotify(org.json.JSONObject pet,long now){
+        if(now-lastNoticeCheck<4000)return;
+        lastNoticeCheck=now;
+        org.json.JSONArray messages=pet.optJSONArray("messages");
+        if(messages==null||messages.length()==0)return;
+        org.json.JSONObject latest=messages.optJSONObject(0);
+        if(latest==null)return;
+        String id=latest.optString("id","");
+        if(id.isEmpty()||id.equals(lastNoticeId))return;
+        try{
+            org.json.JSONObject notify=pet.optJSONObject("notify");
+            boolean vibrate=notify!=null&&notify.optBoolean("vibrate");
+            boolean quiet=CompanionNotice.systemQuiet(this)||!CompanionNotice.permitted(this,vibrate);
+            String args=new org.json.JSONArray().put(now).put(quiet).toString();
+            org.json.JSONObject response=new org.json.JSONObject(PetStore.dispatch(this,"takeNotification",args));
+            lastNoticeId=id; // 引擎已判定过；无论发没发出去都不再重试，避免积压补发
+            org.json.JSONObject result=response.optJSONObject("result");
+            if(result!=null&&result.optBoolean("ok")){
+                if(CompanionNotice.post(this,id,result.optString("title"),result.optString("body"),result.optBoolean("vibrate")))
+                    PetStore.dispatch(this,"recordNotification",new org.json.JSONArray().put(now).toString());
+            }
+        }catch(Exception ignored){}
+    }
     @Override public void onDestroy(){
         if(status.startsWith("背屏陪伴运行中"))status="陪伴已暂停，请重新开启";
         running=false;handler.removeCallbacksAndMessages(null);

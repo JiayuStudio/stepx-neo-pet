@@ -24,15 +24,19 @@ public final class UpdateChecker {
         void onResult(JSONObject result);
     }
 
-    private static final int TIMEOUT_MS = 10_000;
+    /** 单次检查的总时限（连接 + 响应头 + body）。必须与 web/src/game/updatePolicy.ts
+     *  的 UPDATE_REQUEST_TIMEOUT_MS 保持一致；UI 另留少量宽限，保证原生先结束。 */
+    static final int TIMEOUT_MS = 12_000; // = UPDATE_REQUEST_TIMEOUT_MS
     private static final int MAX_BODY = 2_000_000;
     private static final AtomicBoolean CHECKING = new AtomicBoolean(false);
 
     private UpdateChecker() {}
 
-    /** 发起检查。检查中的重复调用返回 false（不发起第二次请求）。 */
-    public static boolean check(Context context, String currentVersion, Callback callback) {
-        if (!CHECKING.compareAndSet(false, true)) return false;
+    public enum Status { STARTED, BUSY }
+
+    /** 发起检查。检查中的重复调用返回 BUSY，由桥层如实告知 UI（不假装开始了新请求）。 */
+    public static Status check(Context context, String currentVersion, Callback callback) {
+        if (!CHECKING.compareAndSet(false, true)) return Status.BUSY;
         new Thread(() -> {
             JSONObject result = errorResult(currentVersion, "检查未完成");
             try {
@@ -44,7 +48,7 @@ public final class UpdateChecker {
                 deliver(context, callback, result);
             }
         }, "neo-update-check").start();
-        return true;
+        return Status.STARTED;
     }
 
     /** 请求 + 校验（测试或调试可直接调用）。 */
@@ -53,9 +57,11 @@ public final class UpdateChecker {
         if (current == null) return errorResult(currentVersion, "当前版本号无法比较");
 
         HttpURLConnection connection = (HttpURLConnection) new URL(UpdatePolicy.RELEASES_LATEST_API).openConnection();
+        java.util.Timer timeout = new java.util.Timer(true);
+        timeout.schedule(new java.util.TimerTask(){public void run(){connection.disconnect();}}, TIMEOUT_MS);
         try {
-            // 总时长 deadline 从连接前起算：连接 + 响应头 + body 读取合计不超过 2×TIMEOUT_MS
-            long deadline = android.os.SystemClock.elapsedRealtime() + TIMEOUT_MS * 2L;
+            // 总时长 deadline 从连接前起算：连接 + 响应头 + body 读取合计不超过 TIMEOUT_MS
+            long deadline = android.os.SystemClock.elapsedRealtime() + TIMEOUT_MS;
             connection.setConnectTimeout(TIMEOUT_MS);
             connection.setReadTimeout(TIMEOUT_MS);
             // 不跟随重定向：3xx 直接按非 200 失败，避免被导向不可信地址
@@ -85,6 +91,7 @@ public final class UpdateChecker {
             in.close();
             return evaluatePayload(new JSONObject(out.toString(StandardCharsets.UTF_8.name())), current, currentVersion);
         } finally {
+            timeout.cancel();
             connection.disconnect();
         }
     }
